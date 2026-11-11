@@ -60,6 +60,7 @@ For the application:
   SHA-256 of the downloaded file matches the manifest). GitHub may cache `main` for a few minutes after a release.
 - For production it is still more robust to copy the files into the application's own static files (same origin, version under control).
 - `manifest.json` is stored byte-exact (LF, no BOM), so its own hash is stable across platforms.
+- **Update check on login** (download, cache, offer): [firmware-update-check.md](firmware-update-check.md).
 
 ### 2.2 manifest.json (structure, since 0.3.0)
 ```json

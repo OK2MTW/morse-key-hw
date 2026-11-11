@@ -43,6 +43,7 @@ Four files per release: for each chip (F411, F401) a `-full.bin` for the first i
 | [docs/specification.md](docs/specification.md) | requirements (H-xx hardware/firmware, A-xx application) |
 | [docs/key-interface.md](docs/key-interface.md) | what the key sends over USB (keys, timing) – for application developers |
 | [docs/firmware-flashing.md](docs/firmware-flashing.md) | package format, `manifest.json`, permanent links, DFU and UF2 flashing incl. from a web application |
+| [docs/firmware-update-check.md](docs/firmware-update-check.md) | how an application checks for, downloads and offers new firmware (on every login) |
 | [docs/stage1-blackpill.md](docs/stage1-blackpill.md) | current stage: pins, controls, deviations from the specification |
 | [docs/midi-settings-spec.md](docs/midi-settings-spec.md) | next step: USB MIDI settings channel and bootloader entry from the application (implementation spec) |
 | [docs/stage-plan.md](docs/stage-plan.md), [docs/architecture.md](docs/architecture.md) | development plan, block diagram, open decisions |
