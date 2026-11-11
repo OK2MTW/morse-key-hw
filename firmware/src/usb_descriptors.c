@@ -8,7 +8,7 @@
 // so Windows does not reuse cached descriptors of the keyboard-only firmware.
 #define USB_VID 0x0483
 #define USB_PID 0x5740
-#define USB_BCD_DEVICE 0x0400
+#define USB_BCD_DEVICE 0x0401
 
 enum { ITF_HID = 0, ITF_MIDI, ITF_MIDI_STREAMING, ITF_TOTAL };
 enum { EP_HID_IN = 0x81, EP_MIDI_OUT = 0x02, EP_MIDI_IN = 0x82 };

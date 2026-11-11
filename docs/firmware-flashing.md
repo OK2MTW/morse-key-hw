@@ -1,6 +1,6 @@
 # CW Key firmware flashing: first installation (DFU) and update (UF2)
 
-Document version: 5 (2026-11-12). Firmware: **CwKey 0.4.0**. Bootloader: **TinyUF2 0.36.0-morse-key-hw-nowrp**.
+Document version: 5 (2026-11-12). Firmware: **CwKey 0.4.1**. Bootloader: **TinyUF2 0.36.0-morse-key-hw-nowrp**.
 For: application development (web trainer) and user instructions. Describes (1) module wiring, (2) first installation of a new
 module from an e-shop via the factory (ROM) USB DFU, (3) updates via the UF2 USB drive and (4) how to do both from the web application.
 The key interface (keys, timing) is in [key-interface.md](key-interface.md).
@@ -362,14 +362,15 @@ the LED does not blink, no keyboard appears. **Solution:** 2× NRST → drive �
 | F-6 | One universal image (the F401 version should also run on the F411: 84 MHz, 96 kB RAM) | to try, would simplify image selection |
 | F-7 | Combined image via factory (ROM) DFU on a new module | **not tested**, waiting for a new module |
 | F-8 | Firmware version readable from the application | **0.4.0:** MIDI `GET_INFO` (Chrome/Edge/Firefox); otherwise only file name / `CURRENT.UF2` |
-| F-10 | Settings channel from the application (speed, pitch, volume, PTT times, jump to the bootloader) | **implemented in 0.4.0** ([midi-settings-spec.md](midi-settings-spec.md)), hardware test pending |
+| F-10 | Settings channel from the application (speed, pitch, volume, PTT times, jump to the bootloader) | **implemented in 0.4.0** ([midi-settings-spec.md](midi-settings-spec.md)), works on hardware since 0.4.1 (F411: info, read settings) |
 | F-11 | KEY/PTT: galvanic isolation (H-20) and training/transmit switch (H-21) | not yet, first version uses plain NPN transistors |
 | F-12 | Speaker output (A8): listening test with a real transducer / speaker, tune `SPEAKER_*` | postponed, waiting for the part |
 
 ## 9. Firmware version history
 | Version | Date | Changes |
 |---|---|---|
-| 0.4.0 | 2026-11-12 | **USB MIDI settings channel** ([midi-settings-spec.md](midi-settings-spec.md)): read/change all settings (speed 5–60 WPM, keyer mode, ratio, weight, memory, paddle swap, USB mode, sidetone, speaker pitch/volume, PTT, stream key), **settings stored in flash** (sector 5, autosave, kept across UF2 updates), factory reset (KEY held at power-up), **enter the UF2 bootloader from the application**. New firmware base: TinyUSB + STM32CubeF4 HAL + CMake (no Arduino, no SLA0044 code in the binaries). USB name "CW Key", no mouse interface, no serial number. **Not tested on hardware yet.** |
+| 0.4.1 | 2026-11-12 | **Fix: 0.4.0 did not start at all** (no USB, no LED, no sidetone). TinyUF2 hands over the CPU still running from its HSE PLL; the HAL refuses to reconfigure a PLL that drives the system clock, so the clock setup failed. 0.4.1 switches to HSI and stops the PLL first. Tested on an F411: USB keyboard + MIDI enumerate, `GET_INFO` and settings read work. Optional start-up diagnostics (`-DCWKEY_DIAG=ON`, log in flash at 0x08070000). |
+| 0.4.0 | 2026-11-12 | **Broken – does not start on the board, use 0.4.1.** **USB MIDI settings channel** ([midi-settings-spec.md](midi-settings-spec.md)): read/change all settings (speed 5–60 WPM, keyer mode, ratio, weight, memory, paddle swap, USB mode, sidetone, speaker pitch/volume, PTT, stream key), **settings stored in flash** (sector 5, autosave, kept across UF2 updates), factory reset (KEY held at power-up), **enter the UF2 bootloader from the application**. New firmware base: TinyUSB + STM32CubeF4 HAL + CMake (no Arduino, no SLA0044 code in the binaries). USB name "CW Key", no mouse interface, no serial number. **Not tested on hardware yet.** |
 | 0.3.0 | 2026-11-12 | **One firmware for both sidetone parts:** active buzzer on B8 and speaker/transducer on A8 (PWM, NPN) driven together; release package back to 4 files (`full.bin` and `.uf2` per chip), manifest `uf2` is a single file again. Includes everything from 0.2.0. |
 | 0.2.0 | 2026-11-12 | (not released separately, replaced by 0.3.0 the same day) Transmitter outputs: KEY on B9, PTT on B5 (NPN transistors), PTT hang time 500 ms after the last element, optional PTT lead. New **speaker** build: square-wave tone 700 Hz with volume (duty cycle) and 4 ms soft edges on B8 via an NPN transistor. Release package has 6 files (`full.bin`, `buzzer.uf2`, `speaker.uf2` per chip), stable links in `firmware/latest/`, manifest `uf2` split into `buzzer`/`speaker`. The failed buzzer-PWM experiment was removed. |
 | 0.1.1 | 2026-11-11 | Keyer: the paddles are not read in the gap after an element, so a short press always gives just one dit (previously sometimes two). Buzzer: full drive. The PWM test for lower volume with an active buzzer failed (≤ 90 % does not sound, 95 % almost unchanged); volume can be reduced with a series resistor if needed. |

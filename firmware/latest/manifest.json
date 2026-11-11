@@ -1,6 +1,6 @@
 {
     "name":  "CwKey",
-    "version":  "0.4.0",
+    "version":  "0.4.1",
     "uf2_family_id":  "0x57755a57",
     "bootloader":  "TinyUF2 0.36.0-morse-key-hw-nowrp (TINYUF2_PROTECT_BOOTLOADER=0, never writes option bytes)",
     "outputs":  {
@@ -22,14 +22,14 @@
                         "mcu":  "STM32F411CE",
                         "full":  {
                                      "file":  "cwkey-f411-full.bin",
-                                     "size":  88332,
-                                     "sha256":  "37a87d586736692429d8d6991725ba13c74c729fb0fb61776bf02c377eaaa4cf",
+                                     "size":  88396,
+                                     "sha256":  "1d3a2c022baab667aae643b1c5792c818a84cd3d3ffa530e467b6d968cb8089d",
                                      "base":  "0x08000000"
                                  },
                         "uf2":  {
                                     "file":  "cwkey-f411.uf2",
                                     "size":  46080,
-                                    "sha256":  "9c98647b8eac157961ba1fba2c6fabb9ce6a586b6bb900199383af05d0903771"
+                                    "sha256":  "06bb3ca77c7bd28c2c767d1dfc05dd5ab93199addb52c6af5612b4d32b7d6608"
                                 },
                         "uf2_app_base":  "0x08010000",
                         "bootloader_drive":  {
@@ -48,14 +48,14 @@
                         "mcu":  "STM32F401CC/CD/CE",
                         "full":  {
                                      "file":  "cwkey-f401-full.bin",
-                                     "size":  88336,
-                                     "sha256":  "1861feb253490ecc22434ae8cda3554147df9a60534c41d94fac75faae2af6ff",
+                                     "size":  88404,
+                                     "sha256":  "b44e8f0764a9abed97f34fb640f613339ccc779d0ffb70dc9bbdd013e148ef37",
                                      "base":  "0x08000000"
                                  },
                         "uf2":  {
                                     "file":  "cwkey-f401.uf2",
                                     "size":  46080,
-                                    "sha256":  "17f3742473385cc2dce3ddd4d29b1d820d0236baac4ba28c442eec6a36d634c7"
+                                    "sha256":  "a3cd481598d4a48fa5f57af1cae72eba09b01b9ebead26bc141e041d05a39c10"
                                 },
                         "uf2_app_base":  "0x08010000",
                         "bootloader_drive":  {

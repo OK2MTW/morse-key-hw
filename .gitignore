@@ -14,3 +14,7 @@ backup/
 firmware/build/
 firmware/build-host/
 firmware/third_party/
+
+# start-up diagnostic builds (-DCWKEY_DIAG=ON)
+firmware/build-diag/
+__pycache__/

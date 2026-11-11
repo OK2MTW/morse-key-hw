@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// CW Key firmware 0.4.0 – WeAct Black Pill STM32F411 / STM32F401
+// CW Key firmware 0.4.1 – WeAct Black Pill STM32F411 / STM32F401
 // Spec: docs/specification.md, USB/MIDI: docs/midi-settings-spec.md, flashing: docs/firmware-flashing.md
 //
 // USB composite device:
@@ -11,6 +11,7 @@
 #include <string.h>
 #include "board.h"
 #include "config.h"
+#include "diag.h"
 #include "keyer.h"
 #include "protocol.h"
 #include "settings.h"
@@ -285,7 +286,9 @@ static bool factory_reset_requested(void) {
 
 int main(void) {
   __asm volatile("" : : "r"(cwkey_version));   // keep the version string in the image
+  DIAG(1);
   board_init();
+  DIAG(4);
 
   settings_init_defaults();
   bool reset = factory_reset_requested();
@@ -298,10 +301,12 @@ int main(void) {
   }
   keyer_init();
   apply_settings();
+  DIAG(5);
   signal_clock_source();
 
   protocol_init(&protocolHost);
   tusb_init();
+  DIAG(6);
 
   Paddle dit, dah;
   uint32_t lastSampleUs = board_micros();

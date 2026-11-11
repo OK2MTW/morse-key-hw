@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 #include "board.h"
 #include "config.h"
+#include "diag.h"
 #include "stm32f4xx_hal.h"
 #include "tusb.h"
 
@@ -17,6 +18,32 @@ static void clock_init(void) {
   RCC_OscInitTypeDef osc = {0};
   RCC_ClkInitTypeDef clk = {0};
 
+#ifdef CWKEY_DIAG
+  DIAG_INFO(0x01, RCC->CR);
+  DIAG_INFO(0x02, RCC->CFGR);
+  DIAG_INFO(0x03, RCC->PLLCFGR);
+  DIAG_INFO(0x04, __get_PRIMASK());
+  DIAG_INFO(0x05, SysTick->CTRL);
+  DIAG_INFO(0x06, SCB->VTOR);
+  {  // is the HAL tick running?
+    uint32_t t0 = HAL_GetTick();
+    for (volatile uint32_t i = 0; i < 200000u; i++) {}
+    DIAG_INFO(0x07, HAL_GetTick() - t0);
+  }
+#endif
+  // TinyUF2 may start the application with the system clock still on its own PLL (seen: HSE PLL 84 MHz).
+  // HAL refuses to reconfigure a PLL that drives SYSCLK, so go back to HSI and stop the PLL first.
+  RCC->CR |= RCC_CR_HSION;
+  while (!(RCC->CR & RCC_CR_HSIRDY)) {}
+  RCC->CFGR &= ~RCC_CFGR_SW;                                  // SYSCLK = HSI
+  while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_HSI) {}
+  RCC->CFGR = 0;                                              // all prescalers /1
+  RCC->CR &= ~RCC_CR_PLLON;
+  while (RCC->CR & RCC_CR_PLLRDY) {}
+  SystemCoreClock = HSI_VALUE;
+  HAL_InitTick(TICK_INT_PRIORITY);                            // SysTick for 16 MHz again
+  DIAG_INFO(0x08, RCC->CFGR);
+
   __HAL_RCC_PWR_CLK_ENABLE();
   __HAL_PWR_VOLTAGESCALING_CONFIG(scale);
 
@@ -28,7 +55,10 @@ static void clock_init(void) {
   osc.PLL.PLLN = n;
   osc.PLL.PLLP = p;
   osc.PLL.PLLQ = q;
-  if (HAL_RCC_OscConfig(&osc) != HAL_OK) {
+  HAL_StatusTypeDef st = HAL_RCC_OscConfig(&osc);
+  DIAG_INFO(0x10, st);       // HSE + PLL
+  DIAG_INFO(0x11, RCC->CR);
+  if (st != HAL_OK) {
     clockOnHsi = true;
     RCC_OscInitTypeDef hsi = {0};
     hsi.OscillatorType = RCC_OSCILLATORTYPE_HSE | RCC_OSCILLATORTYPE_HSI;
@@ -41,7 +71,10 @@ static void clock_init(void) {
     hsi.PLL.PLLN = n;
     hsi.PLL.PLLP = p;
     hsi.PLL.PLLQ = q;
-    if (HAL_RCC_OscConfig(&hsi) != HAL_OK) {
+    st = HAL_RCC_OscConfig(&hsi);
+    DIAG_INFO(0x20, st);       // HSI fallback
+    DIAG_INFO(0x21, RCC->CR);
+    if (st != HAL_OK) {
       for (;;) {}  // no clock at all: nothing sensible left to do
     }
   }
@@ -50,7 +83,10 @@ static void clock_init(void) {
   clk.AHBCLKDivider = RCC_SYSCLK_DIV1;
   clk.APB1CLKDivider = RCC_HCLK_DIV2;
   clk.APB2CLKDivider = RCC_HCLK_DIV1;
-  HAL_RCC_ClockConfig(&clk, latency);  // also re-programs SysTick for 1 ms
+  st = HAL_RCC_ClockConfig(&clk, latency);  // also re-programs SysTick for 1 ms
+  DIAG_INFO(0x30, st);
+  DIAG_INFO(0x31, RCC->CFGR);
+  (void)st;
 }
 
 static void gpio_out(GPIO_TypeDef *port, uint32_t pin, GPIO_PinState initial) {
@@ -145,7 +181,9 @@ void board_init(void) {
   // TinyUF2 jumps here with VTOR already set; set it again for a bare ST-Link start.
   SCB->VTOR = APP_START_ADDR;
   HAL_Init();
+  DIAG(2);
   clock_init();
+  DIAG(3);
   gpio_init();
   micros_init();
   speaker_init();
@@ -202,4 +240,62 @@ void board_reboot_to_bootloader(void) {
 // ---------------------------------------------------------------- interrupt handlers
 
 void SysTick_Handler(void) { HAL_IncTick(); }
+
+#ifdef CWKEY_DIAG
+static inline void diag_flash_word(uint32_t addr, uint32_t v) {
+  if (FLASH->CR & FLASH_CR_LOCK) {
+    FLASH->KEYR = 0x45670123u;
+    FLASH->KEYR = 0xCDEF89ABu;
+  }
+  while (FLASH->SR & FLASH_SR_BSY) {}
+  FLASH->SR = FLASH_SR_EOP | FLASH_SR_SOP | FLASH_SR_WRPERR | FLASH_SR_PGAERR | FLASH_SR_PGPERR | FLASH_SR_PGSERR;
+  FLASH->CR = (FLASH->CR & ~FLASH_CR_PSIZE) | FLASH_CR_PSIZE_1 | FLASH_CR_PG;   // 32-bit programming
+  *(volatile uint32_t *)addr = v;
+  __DSB();
+  while (FLASH->SR & FLASH_SR_BSY) {}
+  FLASH->CR &= ~FLASH_CR_PG;
+  FLASH->CR |= FLASH_CR_LOCK;
+}
+
+// Appends one diagnostic log entry (diag.h). The free position is found once per boot (before the data cache can hold stale words).
+void diag_log(uint32_t tag, uint32_t value) {
+  static int32_t next = -1;
+  volatile const uint32_t *log = (volatile const uint32_t *)DIAG_LOG_ADDR;
+  if (next < 0) {
+    next = 0;
+    while ((uint32_t)next < DIAG_LOG_WORDS && log[next] != 0xFFFFFFFFu) next += 2;
+  }
+  if ((uint32_t)next + 2 > DIAG_LOG_WORDS) return;   // full
+  diag_flash_word(DIAG_LOG_ADDR + 4u * (uint32_t)next, tag);
+  diag_flash_word(DIAG_LOG_ADDR + 4u * (uint32_t)next + 4u, value);
+  next += 2;
+}
+
+#endif
+
+#ifdef CWKEY_DIAG
+// Any CPU fault: log the faulting PC/LR and the fault status, then flicker the LED.
+void diag_fault(uint32_t *frame) {
+  diag_log(DIAG_TAG_FAULT | 1, frame[6]);   // PC
+  diag_log(DIAG_TAG_FAULT | 2, frame[5]);   // LR
+  diag_log(DIAG_TAG_FAULT | 3, SCB->CFSR);
+  diag_log(DIAG_TAG_FAULT | 4, SCB->HFSR);
+  diag_log(DIAG_TAG_FAULT | 5, SCB->BFAR);
+  diag_hw_init();
+  for (;;) {
+    diag_led(true);
+    for (volatile uint32_t i = 0; i < 100000u; i++) {}
+    diag_led(false);
+    for (volatile uint32_t i = 0; i < 100000u; i++) {}
+  }
+}
+__attribute__((naked)) void HardFault_Handler(void) {
+  __asm volatile(
+      "tst lr, #4      \n"
+      "ite eq          \n"
+      "mrseq r0, msp   \n"
+      "mrsne r0, psp   \n"
+      "b diag_fault    \n");
+}
+#endif
 void OTG_FS_IRQHandler(void) { tud_int_handler(0); }

@@ -4,8 +4,8 @@
 
 #define CWKEY_VERSION_MAJOR 0
 #define CWKEY_VERSION_MINOR 4
-#define CWKEY_VERSION_PATCH 0
-#define CWKEY_VERSION_STRING "CwKey 0.4.0"
+#define CWKEY_VERSION_PATCH 1
+#define CWKEY_VERSION_STRING "CwKey 0.4.1"
 
 // Application start behind the TinyUF2 bootloader (sectors 0–3).
 #define APP_START_ADDR 0x08010000u

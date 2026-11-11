@@ -43,7 +43,7 @@ Suggested server API for the front end:
 
 | Endpoint | Returns |
 |---|---|
-| `GET /api/firmware/latest` | `{ "version": "0.4.0", "manifest": {...}, "checkedAt": "...", "error": null }` |
+| `GET /api/firmware/latest` | `{ "version": "0.4.1", "manifest": {...}, "checkedAt": "...", "error": null }` |
 | `GET /api/firmware/<version>/<file>` | the cached file (`application/octet-stream`) |
 
 ## 3. Which version is in the connected key?

@@ -1,6 +1,6 @@
 # CW Key hardware keyer: how it works and what it sends to the application
 
-Document version: 4 (2026-11-12). Firmware: **CwKey 0.4.0** (repository `morse-key-hw`, `firmware/src`).
+Document version: 4 (2026-11-12). Firmware: **CwKey 0.4.1** (repository `morse-key-hw`, `firmware/src`).
 For: application development (web trainer) against this HW. Describes the **actual state of the prototype**, not the target state.
 The target behaviour is in the specification `specification.md` (version 2). H-xx/A-xx references point there. Deviations are in section 9.
 
