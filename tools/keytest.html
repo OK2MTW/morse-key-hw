@@ -1,0 +1,182 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: MIT
+     Key event test page for H-31 / H-42 (1): logs keydown/keyup with timestamps,
+     measures press durations per event.code. No dependencies, no network. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Key test</title>
+<style>
+  :root { --bg:#fff; --fg:#111; --mut:#666; --line:#ddd; --ok:#0a7d32; --bad:#b3261e; --acc:#1d4ed8; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#121212; --fg:#eee; --mut:#999; --line:#333; --ok:#4ade80; --bad:#f87171; --acc:#60a5fa; } }
+  body { background:var(--bg); color:var(--fg); font:14px/1.4 system-ui, sans-serif; margin:0; padding:12px 16px; }
+  h1 { font-size:18px; margin:0 0 8px; }
+  .row { display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center; margin:8px 0; }
+  button, select { font:inherit; padding:6px 10px; }
+  #target { border:2px dashed var(--line); padding:12px; min-height:48px; border-radius:6px; }
+  #target:focus, #ro:focus { outline:3px solid var(--acc); }
+  #ro { width:100%; box-sizing:border-box; font:inherit; }
+  #status { font-weight:600; }
+  .ok { color:var(--ok); } .bad { color:var(--bad); } .mut { color:var(--mut); }
+  table { border-collapse:collapse; width:100%; font:12px/1.3 ui-monospace, monospace; }
+  th, td { border-bottom:1px solid var(--line); padding:3px 6px; text-align:left; white-space:nowrap; }
+  .scroll { overflow-x:auto; max-height:40vh; overflow-y:auto; }
+  textarea#csv { width:100%; height:120px; box-sizing:border-box; font:12px ui-monospace, monospace; }
+</style>
+</head>
+<body>
+<h1>Key test (H-31 / H-42)</h1>
+<div class="mut" id="ua"></div>
+
+<div class="row">
+  <label>Focus:
+    <select id="focusMode">
+      <option value="body">none (page body)</option>
+      <option value="div" selected>focused block</option>
+      <option value="ro">read-only text field</option>
+    </select>
+  </label>
+  <label><input type="checkbox" id="prevent" checked> preventDefault</label>
+  <button id="clear">Clear</button>
+  <button id="export">Export CSV</button>
+</div>
+
+<div id="target" tabindex="0">Click here (focused block) and press keys.</div>
+<textarea id="ro" readonly rows="1" hidden>read-only field</textarea>
+<p id="status"></p>
+
+<h2 style="font-size:15px">Summary by <code>code</code></h2>
+<div class="scroll"><table id="stats"><thead><tr>
+  <th>code</th><th>key</th><th>down</th><th>up</th><th>repeat</th><th>errors</th>
+  <th>n lengths</th><th>min</th><th>mean</th><th>max</th><th>std. dev.</th><th>clusters (ms × count)</th>
+</tr></thead><tbody></tbody></table></div>
+
+<h2 style="font-size:15px">Events (last 200)</h2>
+<div class="scroll"><table id="log"><thead><tr>
+  <th>#</th><th>t [ms]</th><th>Δ [ms]</th><th>type</th><th>key</th><th>code</th><th>loc</th><th>rep</th><th>ctrl</th><th>shift</th><th>alt</th><th>meta</th>
+</tr></thead><tbody></tbody></table></div>
+
+<textarea id="csv" hidden></textarea>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const events = [];          // all recorded events
+const down = new Map();     // code -> timeStamp of the non-repeat keydown
+const stats = new Map();    // code -> {key, down, up, rep, err, durs[]}
+let minDelta = Infinity;    // smallest non-zero timestamp step seen (resolution estimate)
+
+$("ua").textContent = navigator.userAgent;
+
+function stat(code, key) {
+  let s = stats.get(code);
+  if (!s) { s = { key, down: 0, up: 0, rep: 0, err: 0, durs: [] }; stats.set(code, s); }
+  if (key) s.key = key;
+  return s;
+}
+
+function record(e) {
+  if ($("prevent").checked) e.preventDefault();
+  const last = events.length ? events[events.length - 1].t : e.timeStamp;
+  const d = e.timeStamp - last;
+  if (d > 0 && d < minDelta) minDelta = d;
+  const ev = { t: e.timeStamp, d, type: e.type, key: e.key, code: e.code, loc: e.location, rep: e.repeat,
+               ctrl: e.ctrlKey, shift: e.shiftKey, alt: e.altKey, meta: e.metaKey };
+  events.push(ev);
+
+  const s = stat(e.code, e.key);
+  if (e.type === "keydown") {
+    if (e.repeat) { s.rep++; }
+    else {
+      s.down++;
+      if (down.has(e.code)) s.err++;          // second keydown without keyup = duplicated / lost keyup
+      down.set(e.code, e.timeStamp);
+    }
+  } else {
+    s.up++;
+    if (down.has(e.code)) { s.durs.push(e.timeStamp - down.get(e.code)); down.delete(e.code); }
+    else s.err++;                             // keyup without keydown = lost keydown
+  }
+  addLogRow(events.length, ev);
+  renderStats();
+}
+
+function addLogRow(n, ev) {
+  const tb = $("log").tBodies[0];
+  const tr = tb.insertRow(0);
+  [n, ev.t.toFixed(2), ev.d.toFixed(2), ev.type, JSON.stringify(ev.key), ev.code, ev.loc,
+   ev.rep ? "R" : "", ev.ctrl ? "C" : "", ev.shift ? "S" : "", ev.alt ? "A" : "", ev.meta ? "M" : ""]
+    .forEach((v) => { tr.insertCell().textContent = v; });
+  if (ev.rep) tr.className = "mut";
+  while (tb.rows.length > 200) tb.deleteRow(-1);
+}
+
+// Groups durations into clusters (gap > 15 % of value) so dots and dashes show separately.
+function clusters(durs) {
+  const a = [...durs].sort((x, y) => x - y), out = [];
+  for (const v of a) {
+    const c = out[out.length - 1];
+    if (c && v - c.max <= Math.max(2, 0.15 * c.max)) { c.max = v; c.vals.push(v); }
+    else out.push({ max: v, vals: [v] });
+  }
+  return out.map((c) => {
+    const m = c.vals.reduce((p, v) => p + v, 0) / c.vals.length;
+    const span = c.vals[c.vals.length - 1] - c.vals[0];
+    return `${m.toFixed(1)}±${(span / 2).toFixed(1)}×${c.vals.length}`;
+  }).join("  ");
+}
+
+function renderStats() {
+  const tb = $("stats").tBodies[0];
+  tb.innerHTML = "";
+  for (const [code, s] of stats) {
+    const n = s.durs.length;
+    const mean = n ? s.durs.reduce((p, v) => p + v, 0) / n : 0;
+    const sd = n > 1 ? Math.sqrt(s.durs.reduce((p, v) => p + (v - mean) ** 2, 0) / (n - 1)) : 0;
+    const tr = tb.insertRow();
+    [code || "(empty)", JSON.stringify(s.key), s.down, s.up, s.rep, s.err, n,
+     n ? Math.min(...s.durs).toFixed(2) : "", n ? mean.toFixed(2) : "", n ? Math.max(...s.durs).toFixed(2) : "",
+     n > 1 ? sd.toFixed(2) : "", n ? clusters(s.durs) : ""]
+      .forEach((v, i) => { const c = tr.insertCell(); c.textContent = v; if (i === 5 && v > 0) c.className = "bad"; });
+  }
+  const held = [...down.keys()].join(", ");
+  $("status").innerHTML =
+    `Events: ${events.length} · timeStamp resolution ≈ ${isFinite(minDelta) ? minDelta.toFixed(3) + " ms" : "?"}` +
+    (held ? ` · <span class="bad">held: ${held}</span>` : "") +
+    ` · focus: <span class="${document.hasFocus() ? "ok" : "bad"}">${document.hasFocus() ? "window has focus" : "window does NOT have focus"}</span>`;
+}
+
+function applyFocusMode() {
+  const m = $("focusMode").value;
+  $("ro").hidden = m !== "ro";
+  if (m === "div") $("target").focus();
+  else if (m === "ro") $("ro").focus();
+  else { document.activeElement && document.activeElement.blur(); }
+  renderStats();
+}
+
+document.addEventListener("keydown", record, true);
+document.addEventListener("keyup", record, true);
+// On focus loss the app releases everything (A-02); here we just flag it.
+window.addEventListener("blur", () => { down.clear(); renderStats(); });
+document.addEventListener("visibilitychange", renderStats);
+window.addEventListener("focus", renderStats);
+$("focusMode").addEventListener("change", applyFocusMode);
+$("clear").addEventListener("click", () => {
+  events.length = 0; down.clear(); stats.clear(); minDelta = Infinity;
+  $("log").tBodies[0].innerHTML = ""; $("csv").hidden = true; renderStats(); applyFocusMode();
+});
+$("export").addEventListener("click", () => {
+  const head = "n,t_ms,delta_ms,type,key,code,location,repeat,ctrl,shift,alt,meta";
+  const rows = events.map((e, i) => [i + 1, e.t.toFixed(3), e.d.toFixed(3), e.type, JSON.stringify(e.key), e.code,
+    e.loc, e.rep, e.ctrl, e.shift, e.alt, e.meta].join(","));
+  const csv = "# " + navigator.userAgent + "\n" + head + "\n" + rows.join("\n");
+  const ta = $("csv"); ta.hidden = false; ta.value = csv; ta.focus(); ta.select();
+  // Clipboard API needs a secure context; over plain http on the LAN the text area is the fallback.
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(csv).catch(() => {});
+});
+applyFocusMode();
+</script>
+</body>
+</html>

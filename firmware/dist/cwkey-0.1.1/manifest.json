@@ -1,0 +1,60 @@
+﻿{
+    "name":  "CwKey",
+    "version":  "0.1.1",
+    "uf2_family_id":  "0x57755a57",
+    "bootloader":  "TinyUF2 0.36.0-morse-key-hw-nowrp (TINYUF2_PROTECT_BOOTLOADER=0, never writes option bytes)",
+    "targets":  [
+                    {
+                        "mcu":  "STM32F411CE",
+                        "uf2":  {
+                                    "file":  "cwkey-0.1.1-f411.uf2",
+                                    "size":  51200,
+                                    "sha256":  "c11619364443897a84fb3e44605b4d16b74a814381de5fb518c010db90fcc034"
+                                },
+                        "uf2_app_base":  "0x08010000",
+                        "full":  {
+                                     "file":  "cwkey-0.1.1-f411-full.bin",
+                                     "size":  91116,
+                                     "sha256":  "1c4408dd003bb8e3af9caf12a1bbd0ff7fc3fa0ef0864524869ead7274a6a259",
+                                     "base":  "0x08000000"
+                                 },
+                        "bootloader_drive":  {
+                                                 "volume_label":  "STMF411BOOT",
+                                                 "info_model":  "ST STM32F411 BlackPill",
+                                                 "info_board_id":  "STM32F411-BlackPill-rev2",
+                                                 "usb_vid_pid":  "239A:0069"
+                                             },
+                        "rom_dfu":  {
+                                        "usb_vid_pid":  "0483:DF11",
+                                        "bootloader_id":  "0xD0",
+                                        "flash_layout":  "@Internal Flash  /0x08000000/04*016Kg,01*064Kg,03*128Kg"
+                                    }
+                    },
+                    {
+                        "mcu":  "STM32F401CC/CD/CE",
+                        "uf2":  {
+                                    "file":  "cwkey-0.1.1-f401.uf2",
+                                    "size":  51200,
+                                    "sha256":  "7cda65c96543682aa37873bbd814a01a67f274c52c5b43e262a01e8e3d2dfcf5"
+                                },
+                        "uf2_app_base":  "0x08010000",
+                        "full":  {
+                                     "file":  "cwkey-0.1.1-f401-full.bin",
+                                     "size":  91096,
+                                     "sha256":  "4e0bde5c82b5ea70e14ab5ea2526c89a38ec799f1eb69bf0ffeccf089c829231",
+                                     "base":  "0x08000000"
+                                 },
+                        "bootloader_drive":  {
+                                                 "volume_label":  "BlackPill",
+                                                 "info_model":  "STM32 STM32F401CxUx",
+                                                 "info_board_id":  "BlackPill",
+                                                 "usb_vid_pid":  "239A:005D"
+                                             },
+                        "rom_dfu":  {
+                                        "usb_vid_pid":  "0483:DF11",
+                                        "bootloader_id":  "0xD1",
+                                        "flash_layout":  "@Internal Flash  /0x08000000/04*016Kg,01*064Kg,01..03*128Kg (CC/CD/CE)"
+                                    }
+                    }
+                ]
+}

@@ -1,0 +1,14 @@
+build/
+*.uf2
+*.bin
+*.elf
+*.hex
+*.map
+backup/
+.vscode/
+# release packages and the patched bootloaders are distributed, keep them
+!firmware/dist/**
+!firmware/latest/**
+!firmware/bootloader/*.bin
+# firmware build output (build.ps1: build-<mcu>[-speaker][-uf2]/)
+firmware/CwKey/build-*/

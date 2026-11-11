@@ -1,0 +1,66 @@
+{
+    "name":  "CwKey",
+    "version":  "0.3.0",
+    "uf2_family_id":  "0x57755a57",
+    "bootloader":  "TinyUF2 0.36.0-morse-key-hw-nowrp (TINYUF2_PROTECT_BOOTLOADER=0, never writes option bytes)",
+    "outputs":  {
+                    "buzzer":  "PB8: active buzzer, HIGH while the sidetone sounds",
+                    "speaker":  "PA8: passive transducer / speaker via NPN transistor, PWM tone",
+                    "key":  "PB9: transmitter KEY via NPN transistor",
+                    "ptt":  "PB5: transmitter PTT via NPN transistor"
+                },
+    "targets":  [
+                    {
+                        "mcu":  "STM32F411CE",
+                        "full":  {
+                                     "file":  "cwkey-0.3.0-f411-full.bin",
+                                     "size":  97664,
+                                     "sha256":  "c078caf3a284b79ff5e552d0c1b331b27d7c6d4dca151b228e097e0ef1e78267",
+                                     "base":  "0x08000000"
+                                 },
+                        "uf2":  {
+                                    "file":  "cwkey-0.3.0-f411.uf2",
+                                    "size":  64512,
+                                    "sha256":  "92eae376c9a015172715f823752958ba650e58bddaef73e3c99949662b000f4c"
+                                },
+                        "uf2_app_base":  "0x08010000",
+                        "bootloader_drive":  {
+                                                 "volume_label":  "STMF411BOOT",
+                                                 "info_model":  "ST STM32F411 BlackPill",
+                                                 "info_board_id":  "STM32F411-BlackPill-rev2",
+                                                 "usb_vid_pid":  "239A:0069"
+                                             },
+                        "rom_dfu":  {
+                                        "usb_vid_pid":  "0483:DF11",
+                                        "bootloader_id":  "0xD0",
+                                        "flash_layout":  "@Internal Flash  /0x08000000/04*016Kg,01*064Kg,03*128Kg"
+                                    }
+                    },
+                    {
+                        "mcu":  "STM32F401CC/CD/CE",
+                        "full":  {
+                                     "file":  "cwkey-0.3.0-f401-full.bin",
+                                     "size":  97632,
+                                     "sha256":  "db0bc4724b6de0a9e5f9196f30e6a9634ce85e7442eab28de676c33776db433f",
+                                     "base":  "0x08000000"
+                                 },
+                        "uf2":  {
+                                    "file":  "cwkey-0.3.0-f401.uf2",
+                                    "size":  64512,
+                                    "sha256":  "e3a7bc5319b6b0c9a703542db3329b8a14f2894dfb71d8e7d8793532a0bddaa1"
+                                },
+                        "uf2_app_base":  "0x08010000",
+                        "bootloader_drive":  {
+                                                 "volume_label":  "BlackPill",
+                                                 "info_model":  "STM32 STM32F401CxUx",
+                                                 "info_board_id":  "BlackPill",
+                                                 "usb_vid_pid":  "239A:005D"
+                                             },
+                        "rom_dfu":  {
+                                        "usb_vid_pid":  "0483:DF11",
+                                        "bootloader_id":  "0xD1",
+                                        "flash_layout":  "@Internal Flash  /0x08000000/04*016Kg,01*064Kg,0N*128Kg (N = 1 CC, 2 CD, 3 CE)"
+                                    }
+                    }
+                ]
+}
