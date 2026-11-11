@@ -50,6 +50,7 @@ Four files per release: for each chip (F411, F401) a `-full.bin` for the first i
 | [docs/mcu-selection.md](docs/mcu-selection.md), [docs/test-h31-stream-key.md](docs/test-h31-stream-key.md) | MCU choice, stream key test on iPhone |
 | [tools/keytest.html](tools/keytest.html) | test page: key events, element lengths, lost events |
 | [tools/miditest.html](tools/miditest.html) | test page for the USB MIDI settings channel (Chrome/Edge/Firefox) |
+| [tools/cwkey_midi.py](tools/cwkey_midi.py) | Windows command-line tool: MIDI info/settings and a full firmware update over MIDI (bootloader, copy, verify) |
 
 **Building** (Windows; arm-none-eabi-gcc, `python -m pip install cmake ninja`): `firmware/build.ps1 [-Test]`
 (downloads the pinned TinyUSB / ST sources with `firmware/tools/get_deps.py`, builds both chips, `-Test` runs the host unit
