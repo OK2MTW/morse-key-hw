@@ -13,9 +13,10 @@ and sends the keying to a computer or phone as a **USB keyboard**: no drivers, a
   (Vail, VBand, morsecode.world).
 - Keying a transmitter: KEY and PTT outputs.
 
-**Status:** prototype, firmware **0.3.0**. Working: iambic B keyer (20–60 WPM), paddle filter, buzzer and speaker sidetone outputs,
-speed/mode button, USB keyboard, KEY/PTT outputs. Planned: headphone output with PC audio mix, isolated KEY/PTT,
-settings stored and adjustable from the application ([stage plan](docs/stage-plan.md)).
+**Status:** prototype, firmware **0.4.0**. Working: iambic A/B keyer (5–60 WPM), paddle filter, buzzer and speaker sidetone outputs,
+speed/mode button, USB keyboard, KEY/PTT outputs, settings stored in the key and adjustable from the application over
+USB MIDI (0.4.0, not yet tested on hardware). Planned: headphone output with PC audio mix, isolated KEY/PTT
+([stage plan](docs/stage-plan.md)).
 
 ## Get started → [Wiki](https://github.com/OK2MTW/morse-key-hw/wiki)
 
@@ -47,25 +48,29 @@ Four files per release: for each chip (F411, F401) a `-full.bin` for the first i
 | [docs/stage-plan.md](docs/stage-plan.md), [docs/architecture.md](docs/architecture.md) | development plan, block diagram, open decisions |
 | [docs/mcu-selection.md](docs/mcu-selection.md), [docs/test-h31-stream-key.md](docs/test-h31-stream-key.md) | MCU choice, stream key test on iPhone |
 | [tools/keytest.html](tools/keytest.html) | test page: key events, element lengths, lost events |
+| [tools/miditest.html](tools/miditest.html) | test page for the USB MIDI settings channel (Chrome/Edge/Firefox) |
 
-**Building** (Windows, arduino-cli with the STMicroelectronics:stm32 core):
-`firmware/build.ps1 -Mcu F411|F401 [-Uf2]`, whole release package: `firmware/package.ps1`.
+**Building** (Windows; arm-none-eabi-gcc, `python -m pip install cmake ninja`): `firmware/build.ps1 [-Test]`
+(downloads the pinned TinyUSB / ST sources with `firmware/tools/get_deps.py`, builds both chips, `-Test` runs the host unit
+tests with `python -m pip install ziglang`); whole release package: `firmware/package.ps1`.
 
 ## Licence
 
 - Firmware, tools and documentation: **MIT**, see [LICENSE](LICENSE).
 - Hardware (schematics, PCB when available): **CERN-OHL-P v2**, see [LICENSE-HW](LICENSE-HW).
 
-Third-party components:
+Third-party components (downloaded at build time by `firmware/tools/get_deps.py`, pinned versions):
 
 | Component | Where | Licence |
 |---|---|---|
+| TinyUSB (Ha Thach) | USB stack, compiled into the firmware | MIT |
+| STM32CubeF4 HAL driver (STMicroelectronics) | clock, GPIO, flash, compiled into the firmware | BSD-3-Clause |
+| CMSIS device F4 (STMicroelectronics), CMSIS core (Arm) | startup code and register headers | Apache-2.0 |
 | TinyUF2 0.36.0 (Ha Thach / Adafruit), built with `TINYUF2_PROTECT_BOOTLOADER=0` | `firmware/bootloader/`, inside `-full.bin` | MIT, [LICENSE-tinyuf2.txt](firmware/bootloader/LICENSE-tinyuf2.txt) |
 | uf2conv.py (Microsoft) | `tools/uf2/` | MIT, [LICENSE.txt](tools/uf2/LICENSE.txt) |
-| STM32 Arduino core (stm32duino), ST HAL and USB library | compiled into the CwKey binaries | BSD-3-Clause (HAL, CMSIS), **SLA0044** (ST USB Device library, ST microcontrollers only) |
 
-The source code in this repository is MIT. The Black Pill binaries contain the ST USB library under SLA0044, which
-permits use with ST microcontrollers only – true for the Black Pill. A move to TinyUSB (MIT) is considered.
+Since 0.4.0 the binaries contain no code under restrictive licences (the earlier Arduino builds included the ST USB
+library under SLA0044).
 
 ---
 Martin OK2MTW

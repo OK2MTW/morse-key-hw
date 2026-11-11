@@ -13,9 +13,15 @@
 $ErrorActionPreference = 'Stop'
 $fw = $PSScriptRoot
 
-$src = Get-Content (Join-Path $fw 'CwKey\CwKey.ino') -Raw
-if ($src -notmatch 'CWKEY_VERSION\[\] = "CwKey (\d+\.\d+\.\d+)"') { throw 'CWKEY_VERSION not found in CwKey.ino' }
+$src = Get-Content (Join-Path $fw 'src\config.h') -Raw
+if ($src -notmatch '#define CWKEY_VERSION_STRING "CwKey (\d+\.\d+\.\d+)"') { throw 'CWKEY_VERSION_STRING not found in src\config.h' }
 $version = $Matches[1]
+
+# Build both chips (and run the host unit tests) once.
+$ErrorActionPreference = 'Continue'
+& (Join-Path $fw 'build.ps1') -Test | Out-Host
+if ($LASTEXITCODE -ne 0) { throw 'build or unit tests failed' }
+$ErrorActionPreference = 'Stop'
 $dist = Join-Path $fw "dist\cwkey-$version"
 $latest = Join-Path $fw 'latest'
 if (Test-Path $latest) { Get-ChildItem $latest -File | Remove-Item }   # latest = exactly one release
@@ -39,16 +45,17 @@ function Describe([string]$dir, [string]$name) {
 $targets = @(); $latestTargets = @()
 foreach ($mcu in $chips.Keys) {
   $c = $chips[$mcu]; $m = $mcu.ToLower()
-  & (Join-Path $fw 'build.ps1') -Mcu $mcu -Uf2 | Out-Null
-  if ($LASTEXITCODE -ne 0) { throw "build $mcu failed" }
-  $buildDir = Join-Path $fw "CwKey\build-$m-uf2"
-  $app = [IO.File]::ReadAllBytes((Join-Path $buildDir 'CwKey.ino.bin'))
+  $buildDir = Join-Path $fw 'build'
+  $app = [IO.File]::ReadAllBytes((Join-Path $buildDir "cwkey-$m.bin"))
+  if ($app.Length -gt 65536) { throw "$mcu application larger than 64 KB (sector 4)" }
+  $verBytes = [Text.Encoding]::ASCII.GetBytes("CwKey $version")
+  if (-not ([Text.Encoding]::ASCII.GetString($app).Contains("CwKey $version"))) { throw "$mcu image does not contain 'CwKey $version'" }
   $sp = [BitConverter]::ToUInt32($app, 0); $reset = [BitConverter]::ToUInt32($app, 4)
   if ($sp -ne $c.ramTop) { throw ("{0}: stack pointer 0x{1:X8}, expected 0x{2:X8}" -f $mcu, $sp, $c.ramTop) }
   if ($reset -lt 0x08010000 -or $reset -ge 0x08060000) { throw ("{0}: reset vector 0x{1:X8} outside the application area" -f $mcu, $reset) }
 
-  Copy-Item (Join-Path $buildDir "CwKey-$mcu.uf2") (Join-Path $dist "cwkey-$version-$m.uf2") -Force
-  Copy-Item (Join-Path $buildDir "CwKey-$mcu.uf2") (Join-Path $latest "cwkey-$m.uf2") -Force
+  Copy-Item (Join-Path $buildDir "cwkey-$m.uf2") (Join-Path $dist "cwkey-$version-$m.uf2") -Force
+  Copy-Item (Join-Path $buildDir "cwkey-$m.uf2") (Join-Path $latest "cwkey-$m.uf2") -Force
 
   $boot = [IO.File]::ReadAllBytes((Join-Path $fw "bootloader\$($c.boot)"))
   if ($boot.Length -gt $appOffset) { throw "bootloader $mcu larger than 64 KB" }
@@ -86,6 +93,14 @@ foreach ($set in @(@{ dir = $dist; t = $targets }, @{ dir = $latest; t = $latest
       key = 'PB9: transmitter KEY via NPN transistor'
       ptt = 'PB5: transmitter PTT via NPN transistor'
     }
+    usb = [ordered]@{
+      vid_pid = '0483:5740'
+      product = 'CW Key'
+      interfaces = 'HID boot keyboard + USB MIDI'
+      midi_port = 'CW Key'
+      midi_protocol_version = 1
+    }
+    settings_storage = 'flash sector 5 (0x08020000), kept across UF2 updates'
     targets = $set.t
   }
   # LF line endings and no BOM, so the SHA-256 of the file is the same on every platform.

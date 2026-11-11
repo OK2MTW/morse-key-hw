@@ -1,0 +1,156 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: MIT
+     CW Key USB MIDI settings test page (docs/midi-settings-spec.md). Chrome/Edge (PC, Android) or Firefox.
+     Needs a secure context (https:// or http://localhost) for Web MIDI with SysEx. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CW Key MIDI test</title>
+<style>
+  :root { --bg:#fff; --fg:#111; --mut:#666; --line:#ddd; --ok:#0a7d32; --bad:#b3261e; --acc:#1d4ed8; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#121212; --fg:#eee; --mut:#999; --line:#333; --ok:#4ade80; --bad:#f87171; --acc:#60a5fa; } }
+  body { background:var(--bg); color:var(--fg); font:14px/1.4 system-ui, sans-serif; margin:0; padding:12px 16px; max-width:900px; }
+  h1 { font-size:18px; margin:0 0 8px; }
+  button, input, select { font:inherit; padding:5px 9px; }
+  .row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:8px 0; }
+  table { border-collapse:collapse; width:100%; }
+  th, td { border-bottom:1px solid var(--line); padding:4px 6px; text-align:left; }
+  td input { width:90px; }
+  #status { font-weight:600; }
+  .ok { color:var(--ok); } .bad { color:var(--bad); } .mut { color:var(--mut); }
+  #log { font:12px ui-monospace, monospace; max-height:30vh; overflow:auto; border:1px solid var(--line); padding:6px; white-space:pre-wrap; }
+</style>
+</head>
+<body>
+<h1>CW Key – USB MIDI settings test</h1>
+<div class="row">
+  <button id="connect">Connect</button>
+  <button id="info" disabled>Get info</button>
+  <button id="all" disabled>Read all</button>
+  <button id="save" disabled>Save to flash</button>
+  <button id="defaults" disabled>Reset defaults</button>
+  <button id="boot" disabled>Enter bootloader…</button>
+</div>
+<p id="status" class="mut">Not connected.</p>
+<p id="infoText" class="mut"></p>
+<table id="settings"><thead><tr><th>id</th><th>Setting</th><th>Value</th><th>Range</th><th></th></tr></thead><tbody></tbody></table>
+<h2 style="font-size:15px">Log</h2>
+<div id="log"></div>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const HDR = [0xF0, 0x7D, 0x43, 0x4B, 0x01];
+const CMD = { INFO: 1, ALL: 2, GET: 3, SET: 4, SAVE: 5, DEFAULTS: 6, BOOT: 7 };
+const RSP = { 0x41: "INFO", 0x42: "VALUE", 0x43: "ACK", 0x44: "NAK", 0x45: "CHANGED" };
+const ERR = { 1: "unknown command", 2: "unknown setting", 3: "out of range", 4: "busy (keying / PTT)",
+              5: "not supported", 6: "flash error", 7: "bad confirmation", 8: "bad frame" };
+const SETTINGS = {
+  1: ["wpm", 5, 60], 2: ["keyer_mode (0 A, 1 B)", 0, 1], 3: ["dah_ratio_x10", 28, 35], 4: ["weight_pct", 25, 75],
+  5: ["element_memory", 0, 1], 6: ["paddle_swap", 0, 1], 7: ["usb_mode (0 B, 1 C)", 0, 1], 8: ["sidetone_on", 0, 1],
+  9: ["tone_hz (speaker A8)", 300, 1200], 10: ["volume_pct (speaker A8)", 0, 100], 11: ["ptt_enabled", 0, 1],
+  12: ["ptt_lead_ms", 0, 100], 13: ["ptt_hang_ms", 50, 3000], 14: ["stream_key (HID usage)", 4, 0x73],
+};
+let input = null, output = null, seq = 1;
+
+const hex = (a) => Array.from(a, (b) => b.toString(16).padStart(2, "0")).join(" ");
+function log(text, cls) {
+  const line = document.createElement("div");
+  line.textContent = new Date().toLocaleTimeString() + "  " + text;
+  if (cls) line.className = cls;
+  $("log").prepend(line);
+}
+
+function send(cmd, payload = []) {
+  if (!output) return;
+  seq = (seq + 1) & 0x7F;
+  const frame = [...HDR, cmd, seq, ...payload.map((b) => b & 0x7F), 0xF7];
+  output.send(frame);
+  log("→ " + hex(frame), "mut");
+}
+
+function setValue(id, value) { send(CMD.SET, [id, value & 0x7F, (value >> 7) & 0x7F]); }
+
+function showValue(id, value) {
+  const inp = document.querySelector(`input[data-id="${id}"]`);
+  if (inp && document.activeElement !== inp) inp.value = value;
+}
+
+function onMessage(ev) {
+  const d = Array.from(ev.data);
+  if (d[0] !== 0xF0 || d[1] !== 0x7D || d[2] !== 0x43 || d[3] !== 0x4B) return;
+  const rsp = d[5], s = d[6], p = d.slice(7, -1);
+  const name = RSP[rsp] || ("0x" + rsp.toString(16));
+  let text = "← " + name;
+  if (rsp === 0x41) {
+    const nameLen = p[7];
+    const fw = String.fromCharCode(...p.slice(8, 8 + nameLen));
+    const info = `${fw} ${p[1]}.${p[2]}.${p[3]} · chip ${p[4] ? "STM32F401" : "STM32F411"} · protocol ${p[0]} · capabilities 0x${p[6].toString(16)}`;
+    $("infoText").textContent = info;
+    text += " " + info;
+  } else if (rsp === 0x42 || rsp === 0x45) {
+    const value = p[1] | (p[2] << 7);
+    showValue(p[0], value);
+    text += ` id ${p[0]} = ${value}` + (rsp === 0x45 ? " (changed on the key)" : "");
+  } else if (rsp === 0x43) {
+    text += ` cmd ${p[0]}`;
+    if (p[0] === CMD.BOOT) setStatus("Key is switching to the bootloader – a USB drive should appear.", "ok");
+    if (p[0] === CMD.SAVE) setStatus("Settings stored in the key.", "ok");
+  } else if (rsp === 0x44) {
+    text += ` cmd ${p[0]}: ${ERR[p[1]] || p[1]}`;
+    setStatus("Error: " + (ERR[p[1]] || p[1]), "bad");
+  }
+  log(text + "   [" + hex(d) + "]", rsp === 0x44 ? "bad" : "");
+}
+
+function setStatus(text, cls) { $("status").textContent = text; $("status").className = cls || ""; }
+
+function buildTable() {
+  const tb = $("settings").tBodies[0];
+  tb.innerHTML = "";
+  for (const [id, [name, min, max]] of Object.entries(SETTINGS)) {
+    const tr = tb.insertRow();
+    tr.insertCell().textContent = id;
+    tr.insertCell().textContent = name;
+    const inp = document.createElement("input");
+    inp.type = "number"; inp.min = min; inp.max = max; inp.dataset.id = id;
+    tr.insertCell().appendChild(inp);
+    tr.insertCell().textContent = `${min}–${max}`;
+    const b = document.createElement("button");
+    b.textContent = "Set";
+    b.onclick = () => setValue(Number(id), Number(inp.value));
+    tr.insertCell().appendChild(b);
+  }
+}
+
+async function connect() {
+  if (!navigator.requestMIDIAccess) { setStatus("This browser has no Web MIDI (use Chrome/Edge or Firefox).", "bad"); return; }
+  try {
+    const access = await navigator.requestMIDIAccess({ sysex: true });
+    const pick = (map) => Array.from(map.values()).find((p) => /cw key/i.test(p.name));
+    input = pick(access.inputs); output = pick(access.outputs);
+    access.onstatechange = () => { input = pick(access.inputs); output = pick(access.outputs); if (input) input.onmidimessage = onMessage; };
+    if (!input || !output) { setStatus("No MIDI port named \"CW Key\" found. Is firmware 0.4.0+ running?", "bad"); return; }
+    input.onmidimessage = onMessage;
+    setStatus(`Connected: ${output.name}`, "ok");
+    for (const id of ["info", "all", "save", "defaults", "boot"]) $(id).disabled = false;
+    send(CMD.INFO);
+    setTimeout(() => send(CMD.ALL), 100);
+  } catch (e) {
+    setStatus("MIDI access refused: " + e.message, "bad");
+  }
+}
+
+$("connect").onclick = connect;
+$("info").onclick = () => send(CMD.INFO);
+$("all").onclick = () => send(CMD.ALL);
+$("save").onclick = () => send(CMD.SAVE);
+$("defaults").onclick = () => { send(CMD.DEFAULTS); setTimeout(() => send(CMD.ALL), 100); };
+$("boot").onclick = () => {
+  if (confirm("Switch the key into the UF2 bootloader? Its keyboard disappears and a USB drive appears.")) send(CMD.BOOT, [0x55, 0x46, 0x32]);
+};
+buildTable();
+</script>
+</body>
+</html>

@@ -10,5 +10,7 @@ backup/
 !firmware/dist/**
 !firmware/latest/**
 !firmware/bootloader/*.bin
-# firmware build output (build.ps1: build-<mcu>[-speaker][-uf2]/)
-firmware/CwKey/build-*/
+# firmware build output and downloaded third-party sources (firmware/tools/get_deps.py)
+firmware/build/
+firmware/build-host/
+firmware/third_party/

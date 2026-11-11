@@ -1,6 +1,6 @@
 # CW Key hardware keyer: how it works and what it sends to the application
 
-Document version: 3 (2026-11-12). Firmware: **CwKey 0.3.0** (repository `morse-key-hw`, `firmware/CwKey`).
+Document version: 4 (2026-11-12). Firmware: **CwKey 0.4.0** (repository `morse-key-hw`, `firmware/src`).
 For: application development (web trainer) against this HW. Describes the **actual state of the prototype**, not the target state.
 The target behaviour is in the specification `specification.md` (version 2). H-xx/A-xx references point there. Deviations are in section 9.
 
@@ -12,8 +12,10 @@ The target behaviour is in the specification `specification.md` (version 2). H-x
 - **Mode B (default):** a single key **F13** is held down for the duration of each element (dit or dah). The application tells a dit
   from a dah by its length (A-11, A-13).
 - **Mode C:** the same + **Left Ctrl = dit paddle, Right Ctrl = dah paddle** (raw paddle state, independent of the keyer).
-- Speed, mode and other settings are **not sent** over USB. The application determines the speed from the dit length.
-- There is no channel from the application to the HW (H-34 not yet). The key cannot be controlled or configured from the application.
+- The keyboard events carry no settings. The application determines the speed from the dit length (A-11).
+- **Since 0.4.0 there is a USB MIDI settings channel** (H-34): read/change/store the settings and switch the key into its
+  UF2 bootloader – Chrome/Edge (PC, Android) and Firefox, not Safari/iOS. Protocol: [midi-settings-spec.md](midi-settings-spec.md).
+  It cannot key anything (H-21).
 
 ## 2. Hardware (prototype)
 
@@ -31,10 +33,10 @@ The target behaviour is in the specification `specification.md` (version 2). H-x
 
 | Item | Value | Note |
 |---|---|---|
-| VID / PID | `0x0483` / `0x5740` | default values of the stm32duino core (ST). **Will change** (H-30, own PID). |
-| Manufacturer / product | "STMicroelectronics" / board name + "HID in FS Mode" | default core strings. Target "CW Key" / "Morse" (H-30). |
-| Serial number | derived from the chip's unique ID | no personal data |
-| Interface | HID boot keyboard + HID mouse | **the mouse never sends anything** (core artefact) |
+| VID / PID | `0x0483` / `0x5740` | kept from earlier versions; **will change** to an own PID (open decision D-2, pid.codes). `bcdDevice` 0x0400. |
+| Manufacturer / product | "morse-key-hw" / **"CW Key"** | since 0.4.0 (H-30) |
+| Serial number | none | no personal data (H-30) |
+| Interfaces | 0: HID boot keyboard; 1+2: USB MIDI (port "CW Key") | since 0.4.0; the former unused mouse interface is gone |
 | Polling | interrupt IN, `bInterval` = 1 ms, full-speed | |
 | Keyboard report | standard 8 B boot report: [modifiers, 0, key, 0, 0, 0, 0, 0] | the output report (keyboard LEDs) is ignored by the HW |
 
@@ -81,7 +83,7 @@ will still change. What counts is which keys arrive (A-03, mapping learning).
 
 ### 4.4 What the application does not receive
 
-- No information about the mode (B/C) or the speed. Mode C is recognised by Ctrl events arriving.
+- No information about the mode (B/C) or the speed in the keyboard events (use the MIDI channel to read them). Mode C is recognised by Ctrl events arriving.
 - No events when the board button is pressed or during piezo announcements (speed, mode).
 - After USB connection or reset the HW sends nothing until a paddle closes (only "all released" is sent).
 
@@ -89,9 +91,9 @@ will still change. What counts is which keys arrive (A-03, mapping learning).
 
 | Action | Result | Confirmation |
 |---|---|---|
-| short press of KEY | speed 20 → 30 → 40 → 50 → 60 → 20 WPM | piezo announces the number in Morse, at the new speed |
-| long press of KEY (1 s) | USB mode B ↔ C | piezo "B" / "C" |
-| after power-up | **20 WPM, mode B** | settings are **not remembered** yet (section 9) |
+| short press of KEY | next speed of 20 → 30 → 40 → 50 → 60 → 20 WPM (from any value: the next step above) | piezo announces the number in Morse, at the new speed; MIDI `CHANGED` |
+| long press of KEY (1 s) | USB mode B ↔ C | piezo "B" / "C"; MIDI `CHANGED` |
+| after power-up | the **stored settings** (since 0.4.0; saved 5 s after the last change) | factory defaults: hold KEY while plugging in → "R" |
 
 ## 6. Timing
 
@@ -146,13 +148,13 @@ The dah:dit ratio is exactly 3:1 and the weight is 50 %. These settings cannot b
 | Requirement | Prototype state |
 |---|---|
 | H-02 pass-through mode for a straight key | **missing** |
-| H-03 speed 5–40 WPM, ratio 2.8–3.5, weight, paddle swap | only 20/30/40/50/60 WPM, ratio 3:1, weight 50 %, no swap |
-| H-05 settings remembered after power-off | **no**, after power-up always 20 WPM and mode B |
-| H-10/H-11/H-12 headphones, mix, adjustable tone | active buzzer ≈ 4 kHz (B8) and speaker output 700 Hz (A8, set in firmware, not from the app); no headphones |
+| H-03 speed 5–40 WPM, ratio 2.8–3.5, weight, paddle swap | **since 0.4.0** via MIDI: 5–60 WPM, ratio 2.8–3.5, weight 25–75 %, swap; the button steps 20–60 |
+| H-05 settings remembered after power-off | **since 0.4.0** (flash, autosave) |
+| H-10/H-11/H-12 headphones, mix, adjustable tone | active buzzer ≈ 4 kHz (B8) and speaker output (A8, pitch 300–1200 Hz and volume settable via MIDI); no headphones |
 | H-20–H-22 KEY/PTT | KEY and PTT via plain NPN transistors (not isolated), PTT hang 500 ms; no training/transmit switch yet |
-| H-30 name "CW Key", own VID/PID | default core identity (section 3), plus a mouse interface |
+| H-30 name "CW Key", own VID/PID | name done (0.4.0); own VID/PID still open (D-2) |
 | H-31 stream key | F13 **provisional**, not verified on iPhone |
-| H-34 MIDI | no |
+| H-34 MIDI | **since 0.4.0** (settings, bootloader entry); not tested on hardware yet |
 | H-42 acceptance | only a functional test so far. Latency and jitter are not measured. |
 
 What may change in future firmware versions, and the application should be ready for it: the stream key, VID/PID and name,

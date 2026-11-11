@@ -3,6 +3,8 @@
 > **Decision 2026-11-09: development stays on the WeAct Black Pill STM32F411CEU6; the module is not changing.**
 > The original comparison is kept below for the record. The Black Pill risks (ST USB library license SLA0044, missing MIDI in the
 > stm32duino core, careful flashing via DFU) remain and are being addressed step by step. Stage 1: [stage1-blackpill.md](stage1-blackpill.md).
+> **Update 0.4.0:** the firmware moved to TinyUSB + STM32CubeF4 HAL (no Arduino): MIDI is available and SLA0044 is gone;
+> flashing uses our TinyUF2 bootloader ([firmware-flashing.md](firmware-flashing.md)).
 
 Status: original draft (2026-11-08). Addresses the first open question of the specification ([specification.md](specification.md), section 6).
 The author decides. Prices are indicative (November 2026) and availability must be checked before buying.

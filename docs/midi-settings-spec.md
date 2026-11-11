@@ -1,6 +1,7 @@
 # USB MIDI settings channel – implementation specification
 
-Document version: 1 (2026-11-12). Status: **approved for implementation**, target firmware **CwKey 0.4.0**.
+Document version: 2 (2026-11-12). Status: **implemented in CwKey 0.4.0** (`firmware/src`, host unit tests in `firmware/tests`,
+browser test page `tools/miditest.html`). **Not yet tested on hardware** – first run on a board is the application's flashing test.
 Audience: the session that implements it (firmware + test tools) and the application project (web side).
 Requirements: H-05 (settings without a PC, remembered), H-21 (only local paddles key the transmitter), H-30/H-33 (HID
 keyboard behaviour), H-34 (later optional USB MIDI for settings), open item F-10 in [firmware-flashing.md](firmware-flashing.md).
@@ -30,8 +31,8 @@ behaviour, changing the hardware.
 
 ## 3. USB stack decision
 
-The current firmware uses the stm32duino Arduino core. Its USB support is **either** HID (keyboard + mouse) **or** CDC –
-no composite device with MIDI, and its ST USB library is under SLA0044.
+Firmware up to 0.3.0 used the stm32duino Arduino core. Its USB support is **either** HID (keyboard + mouse) **or** CDC –
+no composite device with MIDI, and its ST USB library is under SLA0044. **0.4.0 implements D-1** below.
 
 **Decision D-1 (recommended):** move the firmware to **TinyUSB (MIT)** with the **STM32CubeF4 HAL/LL (BSD-3)** in a plain
 **CMake** project, without the Arduino core.

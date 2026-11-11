@@ -4,7 +4,7 @@ Status: **firmware written and compiled, not yet flashed** (2026-11-09).
 Decision 2026-11-09: **development stays on the WeAct Black Pill STM32F411CEU6**; the module is not changing. The board's USB is used
 to connect to a phone or PC. Since 0.2.0 also KEY/PTT outputs (NPN), since 0.3.0 a speaker output on PA8; headphones and controls remain open.
 
-Firmware: [firmware/CwKey/CwKey.ino](../firmware/CwKey/CwKey.ino), build: [firmware/build.ps1](../firmware/build.ps1).
+Firmware: [firmware/src](../firmware/src) (since 0.4.0 TinyUSB + STM32 HAL + CMake; up to 0.3.0 an Arduino sketch), build: [firmware/build.ps1](../firmware/build.ps1).
 
 ## Pins
 
@@ -33,7 +33,7 @@ On the breadboard I recommend a 1 kΩ series resistor and 10 nF to GND on each p
 | long press (1 s) | USB mode **B ↔ C** | "B" or "C" (sounds while still holding) |
 
 The announcement goes **only to the piezo**, never to USB. Pressing a paddle interrupts the announcement.
-After power-up: 20 WPM, mode B. Settings are **not remembered** yet (see open items).
+After power-up: the stored settings (since 0.4.0; factory defaults 20 WPM, mode B – hold KEY while plugging in).
 
 ## USB modes (H-30 to H-33)
 
@@ -64,10 +64,10 @@ Per the specification, mode C sends the stream **in addition** to Ctrl. Web trai
 | # | Item | Proposal |
 |---|---|---|
 | O-1 | Speeds 20–60 WPM vs. H-03 (min. 5–40 WPM). Beginners lack a pace below 20; 50–60 are above the spec range. | Keep as requested, possibly add 10/15 later. I take "wps" to mean WPM (words per minute, PARIS). |
-| O-2 | Settings are not remembered after power-off (H-05). | Store in the last flash sector (0x08060000) only after 5 s of idle. Flash write from the program itself, not via DFU. Only with your consent. |
+| O-2 | Settings are not remembered after power-off (H-05). | **Done in 0.4.0:** flash sector 5 (0x08020000), autosave 5 s after a change while idle. |
 | O-3 | Stream key (H-31) | F13 provisionally, verify with an iPhone |
 | O-4 | Iambic A/B and single-lever "last press wins" mode cannot be switched from the button | A constant for now, a menu later |
-| O-5 | License: the ST USB library in the stm32duino core is under SLA0044 | OK for development. Resolve before publishing binaries (MIT sources can be published). |
+| O-5 | License: the ST USB library in the stm32duino core is under SLA0044 | **Done in 0.4.0:** firmware moved to TinyUSB + STM32CubeF4 HAL, no SLA0044 code. |
 | O-6 | Classic (pass-through) mode for a straight key (H-02) | Next step, if needed |
 
 ## Bring-up procedure (only with consent)

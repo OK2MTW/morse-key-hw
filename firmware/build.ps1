@@ -1,54 +1,39 @@
-# Builds the CwKey firmware for WeAct Black Pill (build only, no flashing).
-#   .\build.ps1 [-Mcu F411|F401] [-Uf2]
-#     -Mcu  chip on the board (the images are not interchangeable: RAM size, clock)
-#     -Uf2  image for 0x08010000 behind the TinyUF2 bootloader + .uf2 file;
-#           without it the image is for 0x08000000 (ROM DFU or ST-Link, no bootloader)
-# One firmware drives both sidetone outputs (active buzzer on PB8, speaker on PA8).
-# Output: CwKey\build-<mcu>[-uf2]\  (CwKey.ino.bin, CwKey-<MCU>.uf2)
-param(
-  [ValidateSet('F411', 'F401')][string]$Mcu = 'F411',
-  [switch]$Uf2
-)
+# Builds the CwKey firmware for both Black Pill chips (build only, no flashing).
+#   .\build.ps1          -> build\cwkey-f411.bin/.uf2, build\cwkey-f401.bin/.uf2 (application at 0x08010000)
+#   .\build.ps1 -Test    also builds and runs the host unit tests (needs: python -m pip install ziglang)
+# Needs: arm-none-eabi-gcc (ARM_GCC_DIR or PATH), cmake, ninja (python -m pip install cmake ninja), python.
+param([switch]$Test)
+# Not 'Stop': cmake/ninja print warnings on stderr; failures are checked by exit code.
+$ErrorActionPreference = 'Continue'
+Set-Location $PSScriptRoot
 
-$ErrorActionPreference = 'Stop'
-$cli = 'C:\Program Files\Arduino CLI\arduino-cli.exe'
-$sketch = Join-Path $PSScriptRoot 'CwKey'
-
-# F401: the BLACKPILL_F401CE variant has the right RAM (96 KB) for F401xD/E; flash is
-# limited to 384 KB because the F401xD fitted on some boards has no more.
-$boards = @{
-  'F411' = @{ pnum = 'BLACKPILL_F411CE'; flash = 524288 }
-  'F401' = @{ pnum = 'BLACKPILL_F401CE'; flash = 393216 }
+if (-not $env:ARM_GCC_DIR) {
+  $xpack = Get-ChildItem "$env:LOCALAPPDATA\Arduino15\packages\STMicroelectronics\tools\xpack-arm-none-eabi-gcc\*\bin" -ErrorAction SilentlyContinue | Select-Object -Last 1
+  if ($xpack) { $env:ARM_GCC_DIR = $xpack.FullName }
 }
-$b = $boards[$Mcu]
-$fqbn = "STMicroelectronics:stm32:GenF4:pnum=$($b.pnum),usb=HID,upload_method=dfuMethod"
-# Host polls the HID endpoint every 1 ms instead of 10 ms (H-30).
-$flags = '-DHID_FS_BINTERVAL=1'
+$scripts = python -c "import sysconfig;print(sysconfig.get_path('scripts','nt_user'))"
+$env:PATH = "$scripts;$env:PATH"
 
-$props = @(
-  '--build-property', "compiler.c.extra_flags=$flags",
-  '--build-property', "compiler.cpp.extra_flags=$flags"
-)
-if ($Uf2) {
-  # TinyUF2 occupies sectors 0-3 (64 KB); the application starts at 0x08010000.
-  $out = Join-Path $sketch "build-$($Mcu.ToLower())-uf2"
-  $props += @(
-    '--build-property', 'build.flash_offset=0x10000',
-    '--build-property', "upload.maximum_size=$($b.flash - 65536)"
-  )
-} else {
-  $out = Join-Path $sketch "build-$($Mcu.ToLower())"
-  $props += @('--build-property', "upload.maximum_size=$($b.flash)")
-}
-
-& $cli compile --fqbn $fqbn --output-dir $out --build-path (Join-Path $out 'obj') @props $sketch
+python -I tools/get_deps.py
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-if ($Uf2) {
-  $conv = Join-Path $PSScriptRoot '..\tools\uf2\uf2conv.py'
-  $uf2File = Join-Path $out "CwKey-$Mcu.uf2"
-  # Family STM32F4 (0x57755a57), base address of the application.
-  python -I -W ignore $conv (Join-Path $out 'CwKey.ino.bin') --convert --family 0x57755a57 --base 0x08010000 --output $uf2File
+$cfg = @('-G', 'Ninja', '-B', 'build', '--no-warn-unused-cli', '-DCMAKE_TOOLCHAIN_FILE=cmake/arm-none-eabi.cmake', '-DCMAKE_BUILD_TYPE=MinSizeRel')
+& cmake @cfg 2>&1 | Out-Null
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+& cmake --build build 2>&1 | Select-String -NotMatch 'is not implemented and will always fail|LOAD segment with RWX'
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+foreach ($m in 'f411', 'f401') {
+  # UF2 family STM32F4 (0x57755a57), application base 0x08010000
+  python -I -W ignore ..\tools\uf2\uf2conv.py "build\cwkey-$m.bin" --convert --family 0x57755a57 --base 0x08010000 --output "build\cwkey-$m.uf2" | Out-Null
   if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-  "UF2: $uf2File"
+  "build\cwkey-$m.uf2"
+}
+
+if ($Test) {
+  New-Item -ItemType Directory -Force build-host | Out-Null
+  python -m ziglang cc -std=gnu11 -Wall -Wextra -Wno-unused-parameter -I src tests/test_host.c src/settings.c src/protocol.c src/keyer.c -o build-host/test_host.exe
+  if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+  .\build-host\test_host.exe
+  exit $LASTEXITCODE
 }

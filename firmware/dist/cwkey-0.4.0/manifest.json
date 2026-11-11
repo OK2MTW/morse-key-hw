@@ -1,0 +1,74 @@
+{
+    "name":  "CwKey",
+    "version":  "0.4.0",
+    "uf2_family_id":  "0x57755a57",
+    "bootloader":  "TinyUF2 0.36.0-morse-key-hw-nowrp (TINYUF2_PROTECT_BOOTLOADER=0, never writes option bytes)",
+    "outputs":  {
+                    "buzzer":  "PB8: active buzzer, HIGH while the sidetone sounds",
+                    "speaker":  "PA8: passive transducer / speaker via NPN transistor, PWM tone",
+                    "key":  "PB9: transmitter KEY via NPN transistor",
+                    "ptt":  "PB5: transmitter PTT via NPN transistor"
+                },
+    "usb":  {
+                "vid_pid":  "0483:5740",
+                "product":  "CW Key",
+                "interfaces":  "HID boot keyboard + USB MIDI",
+                "midi_port":  "CW Key",
+                "midi_protocol_version":  1
+            },
+    "settings_storage":  "flash sector 5 (0x08020000), kept across UF2 updates",
+    "targets":  [
+                    {
+                        "mcu":  "STM32F411CE",
+                        "full":  {
+                                     "file":  "cwkey-0.4.0-f411-full.bin",
+                                     "size":  88332,
+                                     "sha256":  "37a87d586736692429d8d6991725ba13c74c729fb0fb61776bf02c377eaaa4cf",
+                                     "base":  "0x08000000"
+                                 },
+                        "uf2":  {
+                                    "file":  "cwkey-0.4.0-f411.uf2",
+                                    "size":  46080,
+                                    "sha256":  "9c98647b8eac157961ba1fba2c6fabb9ce6a586b6bb900199383af05d0903771"
+                                },
+                        "uf2_app_base":  "0x08010000",
+                        "bootloader_drive":  {
+                                                 "volume_label":  "STMF411BOOT",
+                                                 "info_model":  "ST STM32F411 BlackPill",
+                                                 "info_board_id":  "STM32F411-BlackPill-rev2",
+                                                 "usb_vid_pid":  "239A:0069"
+                                             },
+                        "rom_dfu":  {
+                                        "usb_vid_pid":  "0483:DF11",
+                                        "bootloader_id":  "0xD0",
+                                        "flash_layout":  "@Internal Flash  /0x08000000/04*016Kg,01*064Kg,03*128Kg"
+                                    }
+                    },
+                    {
+                        "mcu":  "STM32F401CC/CD/CE",
+                        "full":  {
+                                     "file":  "cwkey-0.4.0-f401-full.bin",
+                                     "size":  88336,
+                                     "sha256":  "1861feb253490ecc22434ae8cda3554147df9a60534c41d94fac75faae2af6ff",
+                                     "base":  "0x08000000"
+                                 },
+                        "uf2":  {
+                                    "file":  "cwkey-0.4.0-f401.uf2",
+                                    "size":  46080,
+                                    "sha256":  "17f3742473385cc2dce3ddd4d29b1d820d0236baac4ba28c442eec6a36d634c7"
+                                },
+                        "uf2_app_base":  "0x08010000",
+                        "bootloader_drive":  {
+                                                 "volume_label":  "BlackPill",
+                                                 "info_model":  "STM32 STM32F401CxUx",
+                                                 "info_board_id":  "BlackPill",
+                                                 "usb_vid_pid":  "239A:005D"
+                                             },
+                        "rom_dfu":  {
+                                        "usb_vid_pid":  "0483:DF11",
+                                        "bootloader_id":  "0xD1",
+                                        "flash_layout":  "@Internal Flash  /0x08000000/04*016Kg,01*064Kg,0N*128Kg (N = 1 CC, 2 CD, 3 CE)"
+                                    }
+                    }
+                ]
+}
