@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// CW Key firmware 0.4.1 – WeAct Black Pill STM32F411 / STM32F401
+// CW Key firmware 0.4.2 – WeAct Black Pill STM32F411 / STM32F401
 // Spec: docs/specification.md, USB/MIDI: docs/midi-settings-spec.md, flashing: docs/firmware-flashing.md
 //
 // USB composite device:
@@ -299,6 +299,7 @@ int main(void) {
   } else {
     storage_load();
   }
+  settings_set(SET_WPM, POWER_UP_WPM);   // the speed always starts at 20 WPM (not stored), other settings are kept
   keyer_init();
   apply_settings();
   DIAG(5);

@@ -110,7 +110,7 @@ Error codes: `01` unknown command, `02` unknown setting id, `03` value out of ra
 
 | id | Name | Range | Default | Notes |
 |---|---|---|---|---|
-| `01` | wpm | 5–60 | 20 | The KEY button keeps cycling 20/30/40/50/60: from any value it goes to the next list value above (60 → 20). |
+| `01` | wpm | 5–60 | 20 | Since 0.4.2 the KEY button cycles 20/24/28/32/36/40: from any value it goes to the next list value above (40 and above → 20). After power-up the speed is always 20 (a stored value is ignored). |
 | `02` | keyer_mode | 0 iambic A, 1 iambic B | 1 | Single-lever "last pressed wins" (H-02) can be added later as 2. |
 | `03` | dah_ratio_x10 | 28–35 | 30 | H-03 |
 | `04` | weight_pct | 25–75 | 50 | H-03, 50 = neutral |

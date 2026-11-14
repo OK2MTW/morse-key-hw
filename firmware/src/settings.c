@@ -48,7 +48,7 @@ uint8_t settings_set(uint8_t id, uint16_t value) {
 }
 
 uint16_t settings_next_button_wpm(uint16_t wpm) {
-  static const uint16_t steps[] = {20, 30, 40, 50, 60};
+  static const uint16_t steps[] = {20, 24, 28, 32, 36, 40};
   for (unsigned i = 0; i < sizeof steps / sizeof steps[0]; i++) {
     if (steps[i] > wpm) return steps[i];
   }

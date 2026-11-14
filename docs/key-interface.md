@@ -1,6 +1,6 @@
 # CW Key hardware keyer: how it works and what it sends to the application
 
-Document version: 4 (2026-11-12). Firmware: **CwKey 0.4.1** (repository `morse-key-hw`, `firmware/src`).
+Document version: 5 (2026-11-14). Firmware: **CwKey 0.4.2** (repository `morse-key-hw`, `firmware/src`).
 For: application development (web trainer) against this HW. Describes the **actual state of the prototype**, not the target state.
 The target behaviour is in the specification `specification.md` (version 2). H-xx/A-xx references point there. Deviations are in section 9.
 
@@ -91,9 +91,9 @@ will still change. What counts is which keys arrive (A-03, mapping learning).
 
 | Action | Result | Confirmation |
 |---|---|---|
-| short press of KEY | next speed of 20 → 30 → 40 → 50 → 60 → 20 WPM (from any value: the next step above) | piezo announces the number in Morse, at the new speed; MIDI `CHANGED` |
+| short press of KEY | next speed of 20 → 24 → 28 → 32 → 36 → 40 → 20 WPM (since 0.4.2; from any value: the next step above, above 40 → 20) | piezo announces the number in Morse, at the new speed; MIDI `CHANGED` |
 | long press of KEY (1 s) | USB mode B ↔ C | piezo "B" / "C"; MIDI `CHANGED` |
-| after power-up | the **stored settings** (since 0.4.0; saved 5 s after the last change) | factory defaults: hold KEY while plugging in → "R" |
+| after power-up | **20 WPM** (since 0.4.2, the speed is not restored), all other settings **stored** (since 0.4.0; saved 5 s after the last change) | factory defaults: hold KEY while plugging in → "R" |
 
 ## 6. Timing
 
@@ -148,7 +148,7 @@ The dah:dit ratio is exactly 3:1 and the weight is 50 %. These settings cannot b
 | Requirement | Prototype state |
 |---|---|
 | H-02 pass-through mode for a straight key | **missing** |
-| H-03 speed 5–40 WPM, ratio 2.8–3.5, weight, paddle swap | **since 0.4.0** via MIDI: 5–60 WPM, ratio 2.8–3.5, weight 25–75 %, swap; the button steps 20–60 |
+| H-03 speed 5–40 WPM, ratio 2.8–3.5, weight, paddle swap | **since 0.4.0** via MIDI: 5–60 WPM, ratio 2.8–3.5, weight 25–75 %, swap; the button steps 20–40 by 4 (0.4.2) |
 | H-05 settings remembered after power-off | **since 0.4.0** (flash, autosave) |
 | H-10/H-11/H-12 headphones, mix, adjustable tone | active buzzer ≈ 4 kHz (B8) and speaker output (A8, pitch 300–1200 Hz and volume settable via MIDI); no headphones |
 | H-20–H-22 KEY/PTT | KEY and PTT via plain NPN transistors (not isolated), PTT hang 500 ms; no training/transmit switch yet |

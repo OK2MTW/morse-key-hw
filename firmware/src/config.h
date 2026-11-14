@@ -4,10 +4,13 @@
 
 #define CWKEY_VERSION_MAJOR 0
 #define CWKEY_VERSION_MINOR 4
-#define CWKEY_VERSION_PATCH 1
-#define CWKEY_VERSION_STRING "CwKey 0.4.1"
+#define CWKEY_VERSION_PATCH 2
+#define CWKEY_VERSION_STRING "CwKey 0.4.2"
 
 // Application start behind the TinyUF2 bootloader (sectors 0–3).
+// Speed after power-up; the KEY button then steps 20 -> 24 -> ... -> 40 -> 20 WPM (settings.c).
+#define POWER_UP_WPM 20
+
 #define APP_START_ADDR 0x08010000u
 
 // Settings storage: flash sector 5, present on F401CC/CD/CE and F411CE (docs/midi-settings-spec.md, section 6).

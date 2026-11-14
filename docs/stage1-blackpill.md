@@ -29,11 +29,11 @@ On the breadboard I recommend a 1 kΩ series resistor and 10 nF to GND on each p
 
 | Action | Result | Confirmation in the piezo |
 |---|---|---|
-| short press | speed 20 → 30 → 40 → 50 → 60 → 20 WPM | new speed in Morse (e.g. "30"), sent at that speed |
+| short press | speed 20 → 24 → 28 → 32 → 36 → 40 → 20 WPM | new speed in Morse (e.g. "24"), sent at that speed |
 | long press (1 s) | USB mode **B ↔ C** | "B" or "C" (sounds while still holding) |
 
 The announcement goes **only to the piezo**, never to USB. Pressing a paddle interrupts the announcement.
-After power-up: the stored settings (since 0.4.0; factory defaults 20 WPM, mode B – hold KEY while plugging in).
+After power-up: always 20 WPM (since 0.4.2), the other settings as stored (since 0.4.0; factory defaults mode B – hold KEY while plugging in).
 
 ## USB modes (H-30 to H-33)
 
@@ -63,7 +63,7 @@ Per the specification, mode C sends the stream **in addition** to Ctrl. Web trai
 
 | # | Item | Proposal |
 |---|---|---|
-| O-1 | Speeds 20–60 WPM vs. H-03 (min. 5–40 WPM). Beginners lack a pace below 20; 50–60 are above the spec range. | Keep as requested, possibly add 10/15 later. I take "wps" to mean WPM (words per minute, PARIS). |
+| O-1 | Speeds 20–60 WPM vs. H-03 (min. 5–40 WPM). Beginners lack a pace below 20; 50–60 are above the spec range. | **0.4.2:** button 20–40 WPM in steps of 4; 5–60 WPM still settable from the application over MIDI. I take "wps" to mean WPM (words per minute, PARIS). |
 | O-2 | Settings are not remembered after power-off (H-05). | **Done in 0.4.0:** flash sector 5 (0x08020000), autosave 5 s after a change while idle. |
 | O-3 | Stream key (H-31) | F13 provisionally, verify with an iPhone |
 | O-4 | Iambic A/B and single-lever "last press wins" mode cannot be switched from the button | A constant for now, a menu later |

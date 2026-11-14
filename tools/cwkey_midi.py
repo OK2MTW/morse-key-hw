@@ -216,7 +216,11 @@ def update(uf2_path=None):
             k = CwKey()
         except SystemExit:
             continue
-        after = info(k)
+        try:
+            after = info(k)   # right after enumeration the port may exist before the firmware answers
+        except SystemExit:
+            k.close()
+            continue
         k.close()
         print(f"key back: {after['name']} {after['version']} ({after['chip']})")
         return

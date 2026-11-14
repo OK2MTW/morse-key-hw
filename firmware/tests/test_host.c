@@ -53,9 +53,11 @@ static void test_settings(void) {
   CHECK(settings_set(SET_WPM, 25) == SETTINGS_OK && settings_get(SET_WPM) == 25);
   CHECK(settings_set(0x00, 1) == SETTINGS_ERR_UNKNOWN_ID);
   CHECK(settings_set(0x0F, 1) == SETTINGS_ERR_UNKNOWN_ID);
-  CHECK(settings_next_button_wpm(20) == 30);
-  CHECK(settings_next_button_wpm(25) == 30);
+  CHECK(settings_next_button_wpm(20) == 24);
+  CHECK(settings_next_button_wpm(25) == 28);
+  CHECK(settings_next_button_wpm(36) == 40);
   CHECK(settings_next_button_wpm(5) == 20);
+  CHECK(settings_next_button_wpm(40) == 20);
   CHECK(settings_next_button_wpm(60) == 20);
   uint32_t g = settings_generation();
   settings_set(SET_WPM, 25);            // same value: no change
