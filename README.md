@@ -13,7 +13,7 @@ and sends the keying to a computer or phone as a **USB keyboard**: no drivers, a
   (Vail, VBand, morsecode.world).
 - Keying a transmitter: KEY and PTT outputs.
 
-**Status:** prototype, firmware **0.4.2**. Working: iambic A/B keyer (5–60 WPM), paddle filter, buzzer and speaker sidetone outputs,
+**Status:** prototype, firmware **0.4.3**. Working: iambic A/B keyer (5–60 WPM), paddle filter, buzzer and speaker sidetone outputs (speaker: sine tone, pitch and volume from the application),
 speed/mode button, USB keyboard, KEY/PTT outputs, settings stored in the key and adjustable from the application over
 USB MIDI (since 0.4.0; 0.4.0 itself does not start, use 0.4.1). Planned: headphone output with PC audio mix, isolated KEY/PTT
 ([stage plan](docs/stage-plan.md)).

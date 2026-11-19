@@ -51,6 +51,9 @@ static void test_settings(void) {
   CHECK(settings_set(SET_WPM, 61) == SETTINGS_ERR_RANGE);
   CHECK(settings_get(SET_WPM) == 20);
   CHECK(settings_set(SET_WPM, 25) == SETTINGS_OK && settings_get(SET_WPM) == 25);
+  CHECK(settings_set(SET_VOLUME_PCT, 300) == SETTINGS_OK);
+  CHECK(settings_set(SET_VOLUME_PCT, 301) == SETTINGS_ERR_RANGE);
+  settings_set(SET_VOLUME_PCT, 100);
   CHECK(settings_set(0x00, 1) == SETTINGS_ERR_UNKNOWN_ID);
   CHECK(settings_set(0x0F, 1) == SETTINGS_ERR_UNKNOWN_ID);
   CHECK(settings_next_button_wpm(20) == 24);

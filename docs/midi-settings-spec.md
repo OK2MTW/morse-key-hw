@@ -119,13 +119,24 @@ Error codes: `01` unknown command, `02` unknown setting id, `03` value out of ra
 | `07` | usb_mode | 0 B, 1 C | 0 | same as the long KEY press |
 | `08` | sidetone_on | 0/1 | 1 | announcements (speed/mode) still sound |
 | `09` | tone_hz | 300–1200 | 700 | speaker output A8 (the active buzzer on B8 has a fixed pitch) |
-| `0A` | volume_pct | 0–100 | 100 | speaker output A8 (100 % = 50 % duty) |
+| `0A` | volume_pct | 0–300 (0.4.0–0.4.2: 0–100) | 100 | speaker output A8. Since 0.4.3 a sine tone: 0–100 % = clean sine amplitude, 101–300 % = soft-clipped sine, louder (300 % ≈ square wave). Firmware ≤ 0.4.2 answers `03` out of range above 100 – read the range from the firmware version (`GET_INFO`). Up to 0.4.2: square wave, 100 % = 50 % duty. |
 | `0B` | ptt_enabled | 0/1 | 1 | 0 = PTT output never closes (rigs with QSK/VOX, H-22) |
 | `0C` | ptt_lead_ms | 0–100 | 0 | delays the first element, see `PTT_LEAD_MS` |
 | `0D` | ptt_hang_ms | 50–3000 | 500 | `PTT_HANG_MS` |
 | `0E` | stream_key | HID usage 0x04–0x73 | 0x68 (F13) | H-31; must differ from Ctrl |
 
 New ids may be added later; the application must ignore unknown ids in GET_ALL and keep working.
+
+**Value ranges by firmware version** (for the application UI):
+
+| Setting | 0.4.0–0.4.2 | 0.4.3+ |
+|---|---|---|
+| `09` tone_hz | 300–1200 (square wave) | 300–1200 (sine) |
+| `0A` volume_pct | 0–100 | 0–300 (suggested UI: slider 0–300 %, mark 100 % as "clean sine") |
+
+**Timeouts and retries:** occasionally a request gets no answer (seen on Windows in about 1 of 3 newly opened
+connections; under investigation). The application should wait about 1.5 s and resend the request with a new `seq`,
+up to 3 times. SET and SAVE are idempotent, so a repeat is safe.
 
 ### 5.4 Behaviour rules
 - A SET is applied immediately in RAM (from the next element / next tone) and acknowledged. Out-of-range → NAK `03`, nothing changes.

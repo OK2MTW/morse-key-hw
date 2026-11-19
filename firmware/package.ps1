@@ -89,7 +89,7 @@ foreach ($set in @(@{ dir = $dist; t = $targets }, @{ dir = $latest; t = $latest
     bootloader = 'TinyUF2 0.36.0-morse-key-hw-nowrp (TINYUF2_PROTECT_BOOTLOADER=0, never writes option bytes)'
     outputs = [ordered]@{
       buzzer = 'PB8: active buzzer, HIGH while the sidetone sounds'
-      speaker = 'PA8: passive transducer / speaker via NPN transistor, PWM tone'
+      speaker = 'PA8: speaker / passive transducer, sine tone by 48 kHz PWM (8 Ohm + 100-150 Ohm series resistor, or NPN transistor)'
       key = 'PB9: transmitter KEY via NPN transistor'
       ptt = 'PB5: transmitter PTT via NPN transistor'
     }

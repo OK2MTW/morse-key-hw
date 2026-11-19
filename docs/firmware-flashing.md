@@ -1,6 +1,6 @@
 # CW Key firmware flashing: first installation (DFU) and update (UF2)
 
-Document version: 6 (2026-11-14). Firmware: **CwKey 0.4.2**. Bootloader: **TinyUF2 0.36.0-morse-key-hw-nowrp**.
+Document version: 7 (2026-11-19). Firmware: **CwKey 0.4.3**. Bootloader: **TinyUF2 0.36.0-morse-key-hw-nowrp**.
 For: application development (web trainer) and user instructions. Describes (1) module wiring, (2) first installation of a new
 module from an e-shop via the factory (ROM) USB DFU, (3) updates via the UF2 USB drive and (4) how to do both from the web application.
 The key interface (keys, timing) is in [key-interface.md](key-interface.md).
@@ -14,7 +14,7 @@ The key interface (keys, timing) is in [key-interface.md](key-interface.md).
   **STM32CubeProgrammer** (section 4.2), on macOS/Linux also `dfu-util`. A phone is not sufficient for first installation.
 - **Update (always afterwards):** 2× quick NRST → the module appears as a **USB drive** → copy `…​.uf2`. The module restarts by itself.
 - **One firmware for both sidetone parts** (since 0.3.0): an **active buzzer on PB8** (fixed pitch) and a
-  **speaker / passive transducer on PA8** via an NPN transistor (pitch, volume, soft edges) are driven at the same time.
+  **speaker / passive transducer on PA8** via an NPN transistor or a series resistor (sine tone, pitch, volume, soft edges) are driven at the same time.
   The user connects the part they have; there is nothing to choose when flashing.
 - **4 files per release:** for each chip (F411, F401) `…-full.bin` (first installation) and `….uf2` (update).
 - **Option bytes are never changed.** The official TinyUF2 for STM32F4 writes WRP protection, so only our build
@@ -115,7 +115,7 @@ format with separate buzzer/speaker files was never released.
 | **B6** | input | dit paddle (jack tip), contact to GND, internal pull-up |
 | **B7** | input | dah paddle (jack ring), contact to GND, internal pull-up |
 | **B8** | output | sidetone for an **active buzzer**: HIGH while the tone sounds |
-| **A8** | output | sidetone for a **speaker / passive transducer**: PWM tone to an NPN transistor (both B8 and A8 always run) |
+| **A8** | output | sidetone for a **speaker / passive transducer**: sine tone by 48 kHz PWM, to an NPN transistor or a series resistor (both B8 and A8 always run) |
 | **B9** | output | **KEY** to the transmitter: HIGH while a dit/dah is sent, drives an NPN transistor |
 | **B5** | output | **PTT** to the transmitter: HIGH from the first element until **500 ms** after the last one, drives an NPN transistor |
 | G | – | ground |
@@ -149,8 +149,14 @@ variants. B5 to B9 are in one row next to each other (together with 5V, GND and 
 
 ### 3.5 Speaker instead of the buzzer (output A8)
 
-The speaker output gives an adjustable pitch (default 700 Hz), volume and soft edges (no clicks, H-12). It needs a
-**passive** sound device and a transistor, because a GPIO pin cannot drive a coil directly.
+The speaker output gives a **sine tone** with adjustable pitch (default 700 Hz) and volume and soft edges (no clicks,
+H-12). Since 0.4.3 the pin carries a 48 kHz PWM (inaudible) whose duty follows the sine; the speaker itself filters out
+the carrier. Each element rises and falls with a 5 ms raised-cosine envelope. In silence the pin is low (no DC through
+the speaker). It needs a **passive** sound device.
+
+**Simplest wiring (tested):** mini speaker 8 Ω in series with a **100–150 Ω resistor** directly from A8 to GND. With
+100 Ω the peak pin current is about 25–30 mA, at the limit of the STM32 pin (25 mA); 150 Ω is the safer choice
+(a little quieter). Louder: the transistor stage below.
 
 Recommended part (mechanically close to the 12 mm buzzer): **passive electromagnetic transducer Ø 12 mm**, 2 pins with
 7.6 mm pitch, coil 16–42 Ω, rated 3–5 V, resonance ~2.3–2.7 kHz (e.g. Same Sky/CUI CEM-1203(42), or the generic
@@ -176,8 +182,11 @@ Recommended part (mechanically close to the 12 mm buzzer): **passive electromagn
 
 - Add a **10 kΩ resistor from the base to GND**, so the transistor stays off while A8 floats (reset, bootloader).
 - The diode is required (coil). A passive transducer must not beep on DC: if it beeps by itself, it is an active buzzer.
-- Pitch, volume and edge time are constants in the firmware (`SPEAKER_TONE_HZ`, `SPEAKER_VOLUME_PCT`, `SPEAKER_RAMP_US`);
-  later they will be settable from the application (open item F-10).
+- Pitch (300–1200 Hz) and volume (0–300 %) are set from the application over USB MIDI (settings `09`, `0A`,
+  [midi-settings-spec.md](midi-settings-spec.md)) and stored in the key. Up to 100 % the tone is a clean sine; above
+  100 % the sine is soft-clipped – louder, with a slightly harder sound; 300 % is close to the square wave of
+  firmware ≤ 0.4.2. The peak pin current does not grow with the volume (the pin is fully on at the sine peak anyway).
+- Edge time and carrier are constants in the firmware (`SPEAKER_RAMP_US` 5 ms, `SPEAKER_RATE_HZ` 48 kHz, `config.h`).
 
 ### 3.6 KEY and PTT outputs for a transmitter (since 0.2.0)
 
@@ -369,6 +378,7 @@ the LED does not blink, no keyboard appears. **Solution:** 2× NRST → drive �
 ## 9. Firmware version history
 | Version | Date | Changes |
 |---|---|---|
+| 0.4.3 | 2026-11-19 | **Speaker A8: sine tone** (48 kHz PWM, sine table, 5 ms raised-cosine rise/fall – no clicks; volume changes the amplitude, not the timbre). **volume_pct 0–300 %** (was 0–100): above 100 % soft clipping, louder; 300 % ≈ the former square wave. Tested on an F411 with an 8 Ω speaker and 100 Ω series resistor; pitch and volume set over MIDI. |
 | 0.4.2 | 2026-11-14 | **KEY button speed steps 20 → 24 → 28 → 32 → 36 → 40 → 20 WPM** (was 20–60 in steps of 10). **After power-up the speed is always 20 WPM**; the other stored settings are kept. 5–60 WPM can still be set from the application over MIDI. |
 | 0.4.1 | 2026-11-12 | **Fix: 0.4.0 did not start at all** (no USB, no LED, no sidetone). TinyUF2 hands over the CPU still running from its HSE PLL; the HAL refuses to reconfigure a PLL that drives the system clock, so the clock setup failed. 0.4.1 switches to HSI and stops the PLL first. Tested on an F411: USB keyboard + MIDI enumerate, `GET_INFO` and settings read work. Optional start-up diagnostics (`-DCWKEY_DIAG=ON`, log in flash at 0x08070000). |
 | 0.4.0 | 2026-11-12 | **Broken – does not start on the board, use 0.4.1.** **USB MIDI settings channel** ([midi-settings-spec.md](midi-settings-spec.md)): read/change all settings (speed 5–60 WPM, keyer mode, ratio, weight, memory, paddle swap, USB mode, sidetone, speaker pitch/volume, PTT, stream key), **settings stored in flash** (sector 5, autosave, kept across UF2 updates), factory reset (KEY held at power-up), **enter the UF2 bootloader from the application**. New firmware base: TinyUSB + STM32CubeF4 HAL + CMake (no Arduino, no SLA0044 code in the binaries). USB name "CW Key", no mouse interface, no serial number. **Not tested on hardware yet.** |

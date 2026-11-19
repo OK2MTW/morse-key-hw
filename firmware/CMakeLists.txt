@@ -63,6 +63,7 @@ foreach(chip ${CHIPS})
   endif()
   target_compile_options(${target} PRIVATE $<$<COMPILE_LANGUAGE:C>:-Wall -Wextra -Wno-unused-parameter -std=gnu11>)
   target_link_options(${target} PRIVATE -T${CMAKE_CURRENT_BINARY_DIR}/${target}.ld -Wl,-Map=${target}.map)
+  target_link_libraries(${target} PRIVATE m)                  # sinf() for the speaker tables
   set_target_properties(${target} PROPERTIES SUFFIX ".elf")
 
   add_custom_command(TARGET ${target} POST_BUILD

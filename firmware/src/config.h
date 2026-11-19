@@ -4,8 +4,8 @@
 
 #define CWKEY_VERSION_MAJOR 0
 #define CWKEY_VERSION_MINOR 4
-#define CWKEY_VERSION_PATCH 2
-#define CWKEY_VERSION_STRING "CwKey 0.4.2"
+#define CWKEY_VERSION_PATCH 3
+#define CWKEY_VERSION_STRING "CwKey 0.4.3"
 
 // Application start behind the TinyUF2 bootloader (sectors 0–3).
 // Speed after power-up; the KEY button then steps 20 -> 24 -> ... -> 40 -> 20 WPM (settings.c).
@@ -31,5 +31,6 @@
 #define BUTTON_DEBOUNCE_MS 20u
 #define BUTTON_LONG_MS     1000u
 
-#define SPEAKER_RAMP_US    4000u       // sidetone rise/fall on the speaker output (H-12)
+#define SPEAKER_RAMP_US    5000u       // sidetone rise/fall on the speaker output, raised cosine (H-12)
+#define SPEAKER_RATE_HZ    48000u      // speaker PWM carrier = sine sample rate (inaudible)
 #define AUTOSAVE_DELAY_MS  5000u

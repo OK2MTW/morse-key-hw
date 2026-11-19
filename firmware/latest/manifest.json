@@ -1,11 +1,11 @@
 {
     "name":  "CwKey",
-    "version":  "0.4.2",
+    "version":  "0.4.3",
     "uf2_family_id":  "0x57755a57",
     "bootloader":  "TinyUF2 0.36.0-morse-key-hw-nowrp (TINYUF2_PROTECT_BOOTLOADER=0, never writes option bytes)",
     "outputs":  {
                     "buzzer":  "PB8: active buzzer, HIGH while the sidetone sounds",
-                    "speaker":  "PA8: passive transducer / speaker via NPN transistor, PWM tone",
+                    "speaker":  "PA8: speaker / passive transducer, sine tone by 48 kHz PWM (8 Ohm + 100-150 Ohm series resistor, or NPN transistor)",
                     "key":  "PB9: transmitter KEY via NPN transistor",
                     "ptt":  "PB5: transmitter PTT via NPN transistor"
                 },
@@ -22,14 +22,14 @@
                         "mcu":  "STM32F411CE",
                         "full":  {
                                      "file":  "cwkey-f411-full.bin",
-                                     "size":  88412,
-                                     "sha256":  "d1be40a819bc0a9119b1ebde8c6f8fc002813417e995ae903b32cbc89a3ab90e",
+                                     "size":  94140,
+                                     "sha256":  "a9083dd4b34a4c10418c5a254886e6b49742345b502ba86e2d74aa1e9730fadd",
                                      "base":  "0x08000000"
                                  },
                         "uf2":  {
                                     "file":  "cwkey-f411.uf2",
-                                    "size":  46080,
-                                    "sha256":  "0f4be1676897c5f9f6de1d038e2317c3f89d3a6bef6fbd9ad075495890b5b783"
+                                    "size":  57344,
+                                    "sha256":  "822dbd0332993c8c61d5fc52682673918f3e657ec0b69e5df4a150a2078bb52b"
                                 },
                         "uf2_app_base":  "0x08010000",
                         "bootloader_drive":  {
@@ -48,14 +48,14 @@
                         "mcu":  "STM32F401CC/CD/CE",
                         "full":  {
                                      "file":  "cwkey-f401-full.bin",
-                                     "size":  88420,
-                                     "sha256":  "d3d24e0d5b1b7fed84ef76a22dc60fc2515a9698f7fb3734d918ab07b893fe16",
+                                     "size":  94148,
+                                     "sha256":  "f9f922a9ed4257dd39bdca5fb3370aae44f94ec56580520a6a1eb68a339ced9f",
                                      "base":  "0x08000000"
                                  },
                         "uf2":  {
                                     "file":  "cwkey-f401.uf2",
-                                    "size":  46080,
-                                    "sha256":  "3dc024415bef4365a66f697ec1f943f646fb8b43934da4d03c1ee7032bff3b85"
+                                    "size":  57344,
+                                    "sha256":  "980148544197d192d79ce1a19ac8eb40db6637166bd848ef2ede6a0eac11a0d1"
                                 },
                         "uf2_app_base":  "0x08010000",
                         "bootloader_drive":  {

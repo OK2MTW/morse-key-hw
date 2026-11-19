@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// CW Key firmware 0.4.2 – WeAct Black Pill STM32F411 / STM32F401
+// CW Key firmware 0.4.3 – WeAct Black Pill STM32F411 / STM32F401
 // Spec: docs/specification.md, USB/MIDI: docs/midi-settings-spec.md, flashing: docs/firmware-flashing.md
 //
 // USB composite device:
@@ -25,7 +25,6 @@ __attribute__((used)) const char cwkey_version[] = CWKEY_VERSION_STRING;
 
 static bool modeC, paddleSwap, sidetoneOn;
 static uint8_t streamKey;
-static uint32_t speakerMaxCompare;
 static uint32_t appliedGeneration;
 
 static void apply_settings(void) {
@@ -45,8 +44,7 @@ static void apply_settings(void) {
   sidetoneOn = settings_get(SET_SIDETONE_ON) != 0;
   streamKey = (uint8_t)settings_get(SET_STREAM_KEY);
   board_speaker_set_tone(settings_get(SET_TONE_HZ));
-  // 100 % volume = 50 % duty (loudest square wave)
-  speakerMaxCompare = board_speaker_period() / 2 * settings_get(SET_VOLUME_PCT) / 100;
+  board_speaker_set_volume(settings_get(SET_VOLUME_PCT));
   appliedGeneration = settings_generation();
 }
 
@@ -63,21 +61,15 @@ static void mark_dirty(void) {
 // ---------------------------------------------------------------- sidetone (buzzer on PB8 + speaker on PA8)
 
 static bool soundOn;
-static uint32_t soundEdgeUs, soundLevelAtEdge, soundLevel;   // level 0..1000
 
+// The speaker shapes its own sine and soft rise/fall (board.c); the active buzzer is simply switched.
 static void sound_update(bool on, uint32_t now) {
+  (void)now;
   if (on != soundOn) {
     soundOn = on;
     board_buzzer(on);
-    soundEdgeUs = now;
-    soundLevelAtEdge = soundLevel;
+    board_speaker(on);
   }
-  uint32_t elapsed = now - soundEdgeUs;
-  uint32_t step = elapsed >= SPEAKER_RAMP_US ? 1000 : elapsed * 1000 / SPEAKER_RAMP_US;
-  uint32_t level = soundOn ? (soundLevelAtEdge + step > 1000 ? 1000 : soundLevelAtEdge + step)
-                           : (soundLevelAtEdge > step ? soundLevelAtEdge - step : 0);
-  soundLevel = level;
-  board_speaker_set_compare(speakerMaxCompare * level / 1000);
 }
 
 // ---------------------------------------------------------------- HID keyboard queue

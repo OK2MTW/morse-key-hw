@@ -13,7 +13,7 @@ Firmware: [firmware/src](../firmware/src) (since 0.4.0 TinyUSB + STM32 HAL + CMa
 | **PB6** | input | **dit** paddle (jack tip) | contact to GND, internal pull-up (≈ 40 kΩ → contact current ≈ 80 µA) | H-01 |
 | **PB7** | input | **dah** paddle (jack ring) | ditto, jack sleeve = GND | H-01 |
 | **PB8** | output | sidetone for an **active buzzer** (HIGH = tone, ≈ 4 kHz) | PB8 → (+) 32SC4120LF (−) → GND | H-10 |
-| **PA8** | output | sidetone for a **speaker / passive transducer** (since 0.3.0): PWM 700 Hz, volume, soft edges; runs together with PB8 | NPN, base 1 kΩ + 10 kΩ pull-down, see [firmware-flashing.md](firmware-flashing.md) 3.5 | H-10, H-12 |
+| **PA8** | output | sidetone for a **speaker / passive transducer** (since 0.3.0): sine tone by 48 kHz PWM since 0.4.3 (700 Hz default), volume, 5 ms soft edges; runs together with PB8 | 8 Ω speaker + 100–150 Ω resistor, or NPN, base 1 kΩ + 10 kΩ pull-down, see [firmware-flashing.md](firmware-flashing.md) 3.5 | H-10, H-12 |
 | **PB9** | output | **KEY** to the transmitter (since 0.2.0): HIGH during each element | NPN, base 2.2 kΩ + 47 kΩ pull-down, open collector to the rig | H-20 (part) |
 | **PB5** | output | **PTT** to the transmitter (since 0.2.0): HIGH from the first element until 500 ms after the last | ditto | H-22 |
 | PA0 | input | **KEY** button on the board | on the board, active low | H-05 (part) |
@@ -57,7 +57,7 @@ Per the specification, mode C sends the stream **in addition** to Ctrl. Web trai
 - Element memory: the opposite paddle pressed during an element is remembered. The paddles are not read in the gap after an element (since 0.1.1): the next element is determined only at the end of the gap from memory and from the paddles held at that moment. Ratio 3:1, weight 50 %, paddle filter (see below).
 - Paddle filter (H-04): sampling every 100 µs into an integrator with hysteresis. A press is valid after ≥ 1 ms of clean closure, a release after ≥ 3 ms of clean opening, a new press no earlier than 8 ms after release (contact bounce on release). Short spikes (interference) are discarded. This delays a press by about 1 ms and a release by about 3 ms.
 - Timing from the end of the previous element (no drift), 1 µs resolution.
-- Tone delay: the active buzzer is switched directly by the pin (the oscillator starts practically immediately). A passive piezo starts with the next PWM period (≤ 1.43 ms at 700 Hz) → H-13 met.
+- Tone delay: the active buzzer is switched directly by the pin (the oscillator starts practically immediately). The speaker output (since 0.4.3) starts within one 48 kHz sample (21 µs) and rises over 5 ms → H-13 met.
 
 ## Deviations from the specification and open items
 

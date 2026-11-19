@@ -1,6 +1,6 @@
 # CW Key hardware keyer: how it works and what it sends to the application
 
-Document version: 5 (2026-11-14). Firmware: **CwKey 0.4.2** (repository `morse-key-hw`, `firmware/src`).
+Document version: 6 (2026-11-19). Firmware: **CwKey 0.4.3** (repository `morse-key-hw`, `firmware/src`).
 For: application development (web trainer) against this HW. Describes the **actual state of the prototype**, not the target state.
 The target behaviour is in the specification `specification.md` (version 2). H-xx/A-xx references point there. Deviations are in section 9.
 
@@ -21,8 +21,8 @@ The target behaviour is in the specification `specification.md` (version 2). H-x
 
 - WeAct Black Pill STM32F411CEU6 board on a breadboard, USB-C to a PC or phone (OTG / adapter).
 - Paddles: 3.5 mm stereo jack, **tip = dit, ring = dah, sleeve = ground**. Both iambic and single-lever keys work.
-- Sidetone: active piezo buzzer on B8 (fixed tone ≈ 4 kHz) and/or, since 0.3.0, a speaker on A8 (700 Hz, volume and soft edges set
-  in the firmware). Either way the application plays no sidetone.
+- Sidetone: active piezo buzzer on B8 (fixed tone ≈ 4 kHz) and/or, since 0.3.0, a speaker on A8 (sine tone since 0.4.3, default 700 Hz,
+  pitch 300–1200 Hz and volume 0–300 % settable over MIDI, 5 ms soft edges). Either way the application plays no sidetone.
 - Since 0.2.0: KEY (B9) and PTT (B5) outputs for a transmitter, driven only by the local keyer. They do not change anything
   on USB. With a PTT lead time (`PTT_LEAD_MS`, default 0) the first element, including its USB stream key, starts that much
   later than the paddle press.
@@ -150,7 +150,7 @@ The dah:dit ratio is exactly 3:1 and the weight is 50 %. These settings cannot b
 | H-02 pass-through mode for a straight key | **missing** |
 | H-03 speed 5–40 WPM, ratio 2.8–3.5, weight, paddle swap | **since 0.4.0** via MIDI: 5–60 WPM, ratio 2.8–3.5, weight 25–75 %, swap; the button steps 20–40 by 4 (0.4.2) |
 | H-05 settings remembered after power-off | **since 0.4.0** (flash, autosave) |
-| H-10/H-11/H-12 headphones, mix, adjustable tone | active buzzer ≈ 4 kHz (B8) and speaker output (A8, pitch 300–1200 Hz and volume settable via MIDI); no headphones |
+| H-10/H-11/H-12 headphones, mix, adjustable tone | active buzzer ≈ 4 kHz (B8) and speaker output (A8, sine since 0.4.3, pitch 300–1200 Hz and volume 0–300 % settable via MIDI); no headphones |
 | H-20–H-22 KEY/PTT | KEY and PTT via plain NPN transistors (not isolated), PTT hang 500 ms; no training/transmit switch yet |
 | H-30 name "CW Key", own VID/PID | name done (0.4.0); own VID/PID still open (D-2) |
 | H-31 stream key | F13 **provisional**, not verified on iPhone |

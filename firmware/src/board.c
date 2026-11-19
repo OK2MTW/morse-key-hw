@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+#include <math.h>
 #include "board.h"
 #include "config.h"
 #include "diag.h"
@@ -143,19 +144,63 @@ static void micros_init(void) {
   TIM2->CR1 = TIM_CR1_CEN;
 }
 
-// TIM1 channel 1: speaker PWM, 1 MHz tick, period = tone, duty = loudness.
+// ---------------------------------------------------------------- speaker: sine tone by PWM (PA8, TIM1_CH1)
+// Carrier SPEAKER_RATE_HZ (inaudible, filtered by the speaker itself); every carrier period the TIM1 update interrupt
+// writes the next sample: duty = envelope * (1 + wave) / 2. Silent = duty 0 (no DC through the speaker).
+// wave = volume * sin up to 100 %; above (up to 300 %) the sine is soft-clipped, towards a square wave with round
+// edges at 300 % (the loudness of the former square-wave firmware): louder, peak current unchanged.
+// The envelope is a raised cosine of SPEAKER_RAMP_US for rise and fall: no key clicks.
+
+#define SINE_BITS 8
+#define SINE_SIZE (1u << SINE_BITS)
+#define RAMP_SAMPLES (SPEAKER_RAMP_US * (SPEAKER_RATE_HZ / 1000u) / 1000u)
+
+static int16_t waveTable[SINE_SIZE];                 // Q15, volume included
+static uint32_t waveVolume = 0xFFFFFFFFu;
+static uint16_t rampTable[RAMP_SAMPLES + 1];         // Q15, 0 .. 32768
+static uint32_t pwmSteps;                            // ARR + 1
+static volatile uint32_t phase, phaseStep;
+static volatile bool speakerOn;
+static uint32_t rampPos;
+
 static void speaker_init(void) {
+  board_speaker_set_volume(100);
+  for (uint32_t i = 0; i <= RAMP_SAMPLES; i++) {
+    float s = sinf(1.5707963f * (float)i / RAMP_SAMPLES);
+    rampTable[i] = (uint16_t)lrintf(32768.0f * s * s);
+  }
   __HAL_RCC_TIM1_CLK_ENABLE();
   uint32_t timclk = HAL_RCC_GetPCLK2Freq();      // APB2 prescaler 1
+  pwmSteps = timclk / SPEAKER_RATE_HZ;           // F411 96 MHz: 2000, F401 84 MHz: 1750
   TIM1->CR1 = 0;
-  TIM1->PSC = timclk / 1000000u - 1;
-  TIM1->ARR = 1000000u / 700u - 1;
+  TIM1->PSC = 0;
+  TIM1->ARR = pwmSteps - 1;
   TIM1->CCR1 = 0;
   TIM1->CCMR1 = (6u << TIM_CCMR1_OC1M_Pos) | TIM_CCMR1_OC1PE;  // PWM mode 1, preload
   TIM1->CCER = TIM_CCER_CC1E;
   TIM1->BDTR = TIM_BDTR_MOE;                     // main output enable (advanced timer)
   TIM1->EGR = TIM_EGR_UG;
+  TIM1->SR = 0;
+  TIM1->DIER = TIM_DIER_UIE;
+  NVIC_SetPriority(TIM1_UP_TIM10_IRQn, 1);       // above USB: an even sample rate
+  NVIC_EnableIRQ(TIM1_UP_TIM10_IRQn);
   TIM1->CR1 = TIM_CR1_ARPE | TIM_CR1_CEN;
+}
+
+void TIM1_UP_TIM10_IRQHandler(void) {
+  TIM1->SR = ~TIM_SR_UIF;
+  if (speakerOn) {
+    if (rampPos < RAMP_SAMPLES) rampPos++;
+  } else if (rampPos > 0) {
+    rampPos--;
+  } else {
+    TIM1->CCR1 = 0;
+    phase = 0;                                   // next tone starts at zero phase
+    return;
+  }
+  phase += phaseStep;
+  uint32_t unipolar = (uint32_t)(32768 + waveTable[phase >> (32 - SINE_BITS)]);  // Q16, 1 .. 65535
+  TIM1->CCR1 = (((uint32_t)rampTable[rampPos] * unipolar) >> 15) * pwmSteps >> 16;
 }
 
 static void usb_init(void) {
@@ -220,16 +265,30 @@ void board_buzzer(bool on) { pin_write(GPIOB, GPIO_PIN_8, on); }
 
 void board_speaker_set_tone(uint32_t hz) {
   if (hz < 100) hz = 100;
-  TIM1->ARR = 1000000u / hz - 1;                 // preloaded: takes effect at the next period
+  phaseStep = (uint32_t)(((uint64_t)hz << 32) / SPEAKER_RATE_HZ);
 }
-uint32_t board_speaker_period(void) { return TIM1->ARR + 1; }
-void board_speaker_set_compare(uint32_t ticks) { TIM1->CCR1 = ticks; }
+void board_speaker_set_volume(uint32_t pct) {
+  if (pct > 300) pct = 300;
+  if (pct == waveVolume) return;
+  waveVolume = pct;
+  const float knee = 0.7f;                       // soft clipping starts at 70 % of full swing
+  float g = (float)pct / 100.0f;
+  for (uint32_t i = 0; i < SINE_SIZE; i++) {
+    float x = g * sinf(6.2831853f * (float)i / SINE_SIZE);
+    float a = fabsf(x);
+    if (pct > 100 && a > knee) a = knee + (1.0f - knee) * tanhf((a - knee) / (1.0f - knee));
+    if (a > 1.0f) a = 1.0f;
+    waveTable[i] = (int16_t)lrintf(copysignf(a, x) * 32767.0f);
+  }
+}
+void board_speaker(bool on) { speakerOn = on; }
 
 void board_reboot_to_bootloader(void) {
   board_key_out(false);
   board_ptt_out(false);
   board_buzzer(false);
-  board_speaker_set_compare(0);
+  NVIC_DisableIRQ(TIM1_UP_TIM10_IRQn);
+  TIM1->CCR1 = 0;
   __disable_irq();
   *(volatile uint32_t *)BOOTLOADER_MAGIC_ADDR = BOOTLOADER_MAGIC;
   __DSB();

@@ -4,7 +4,7 @@
 //   PB6  in   dit paddle (to GND)          PB9  out  KEY  (NPN, active high)
 //   PB7  in   dah paddle (to GND)          PB5  out  PTT  (NPN, active high)
 //   PB8  out  active buzzer (high = on)    PA0  in   KEY button (active low)
-//   PA8  out  speaker PWM (TIM1_CH1)       PC13 out  LED (active low)
+//   PA8  out  speaker sine PWM (TIM1_CH1)     PC13 out  LED (active low)
 //   PA11/PA12 USB OTG FS
 #pragma once
 #include <stdbool.h>
@@ -28,8 +28,8 @@ void board_key_out(bool on);
 void board_ptt_out(bool on);
 void board_buzzer(bool on);
 
-void board_speaker_set_tone(uint32_t hz);      // speaker PWM period
-uint32_t board_speaker_period(void);           // timer ticks per period
-void board_speaker_set_compare(uint32_t ticks); // 0 = silent
+void board_speaker_set_tone(uint32_t hz);      // sine frequency
+void board_speaker_set_volume(uint32_t pct);   // 0..100 % amplitude, up to 300 % soft-clipped (louder)
+void board_speaker(bool on);                   // start/stop with a soft rise/fall
 
 void board_reboot_to_bootloader(void) __attribute__((noreturn));
